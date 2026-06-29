@@ -99,10 +99,12 @@ final adminDashboardDataProvider = FutureProvider.autoDispose<AdminDashboardData
 class CoachDashboardData {
   final List<Batch> batches;
   final int totalStudents;
+  final Map<String, int> studentsPerBatch;
 
   CoachDashboardData({
     required this.batches,
     required this.totalStudents,
+    required this.studentsPerBatch,
   });
 }
 
@@ -113,9 +115,20 @@ final coachDashboardDataProvider = FutureProvider.autoDispose<CoachDashboardData
   final batches = await batchRepo.getBatches();
   final students = await studentRepo.getStudents();
 
+  final batchIds = batches.map((b) => b.id).toSet();
+  final coachStudents = students.where((s) => batchIds.contains(s.batchId)).toList();
+
+  final Map<String, int> studentsPerBatch = {};
+  for (var s in coachStudents) {
+    if (s.batchId != null) {
+      studentsPerBatch[s.batchId!] = (studentsPerBatch[s.batchId!] ?? 0) + 1;
+    }
+  }
+
   return CoachDashboardData(
     batches: batches,
-    totalStudents: students.length,
+    totalStudents: coachStudents.length,
+    studentsPerBatch: studentsPerBatch,
   );
 });
 
@@ -460,7 +473,7 @@ class DashboardScreen extends ConsumerWidget {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.85,
+              childAspectRatio: 0.9,
               children: [
                 _ActionCard(
                   label: 'Students',
@@ -497,6 +510,18 @@ class DashboardScreen extends ConsumerWidget {
                   icon: Icons.supervised_user_circle_rounded,
                   color: AppTheme.infoBlue,
                   onTap: () => context.push('/users'),
+                ),
+                _ActionCard(
+                  label: 'Batches',
+                  icon: Icons.layers_rounded,
+                  color: AppTheme.accentLime,
+                  onTap: () => context.push('/batches'),
+                ),
+                _ActionCard(
+                  label: 'Settings',
+                  icon: Icons.settings_rounded,
+                  color: AppTheme.textSecondary,
+                  onTap: () => context.push('/settings'),
                 ),
               ],
             ),
@@ -594,6 +619,7 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildCoachDashboard(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(coachDashboardDataProvider);
+    final profile = ref.watch(authControllerProvider).profile!;
 
     return dashboardAsync.when(
       loading: () => const Padding(
@@ -603,107 +629,156 @@ class DashboardScreen extends ConsumerWidget {
       error: (err, stack) => _buildErrorWidget(err.toString()),
       data: (data) {
         final batch = data.batches.isNotEmpty ? data.batches.first : null;
+        final isRestrictedCoach = profile.isCoach && !profile.isActive;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Batch Info Card
-            const _SectionHeader(title: 'Your Batch', icon: Icons.groups_rounded),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: AppTheme.premiumCard(accentColor: AppTheme.accentTeal),
-              child: batch != null
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.tealGradient,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                batch.sport == 'cricket' ? Icons.sports_cricket : Icons.sports_soccer,
-                                size: 22,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SelectableText(
-                                    batch.name,
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.accentTeal.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      batch.sport.toUpperCase(),
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTheme.accentTeal,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        const Divider(color: AppTheme.darkBorder),
-                        const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Total Students', style: TextStyle(color: AppTheme.textSecondary)),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppTheme.accentTeal.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: SelectableText(
-                                '${data.totalStudents}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18,
-                                  color: AppTheme.accentTeal,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        Icon(Icons.info_outline_rounded, size: 40, color: AppTheme.textMuted),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Not assigned to any batch yet.',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Please contact the administrator.',
-                          style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                        ),
-                      ],
+            if (isRestrictedCoach) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.errorRed.withValues(alpha: 0.08),
+                  border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.lock_rounded, color: AppTheme.errorRed, size: 28),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Account Restricted',
+                            style: TextStyle(color: AppTheme.errorRed, fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'An administrator has temporarily suspended modifications on your account. You can view rosters but cannot mark attendance or add students.',
+                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.4),
+                          ),
+                        ],
+                      ),
                     ),
+                  ],
+                ),
+              ),
+            ],
+            // Batch Info Card
+            _SectionHeader(
+              title: data.batches.length > 1 ? 'Your Batches' : 'Your Batch',
+              icon: Icons.groups_rounded,
             ),
+            const SizedBox(height: 12),
+            if (data.batches.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: AppTheme.premiumCard(accentColor: AppTheme.accentTeal),
+                child: Column(
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 40, color: AppTheme.textMuted),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Not assigned to any batch yet.',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Please contact the administrator.',
+                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...data.batches.map((batch) {
+                final batchStudentsCount = data.studentsPerBatch[batch.id] ?? 0;
+                final isCricket = batch.sport == 'cricket';
+                final accentColor = isCricket ? AppTheme.accentLime : AppTheme.accentTeal;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppTheme.premiumCard(accentColor: accentColor),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: isCricket ? AppTheme.limeGradient : AppTheme.tealGradient,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              isCricket ? Icons.sports_cricket : Icons.sports_soccer,
+                              size: 22,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SelectableText(
+                                  batch.name,
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: accentColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    batch.sport.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: accentColor,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      const Divider(color: AppTheme.darkBorder),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Students enrolled in batch', style: TextStyle(color: AppTheme.textSecondary)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: SelectableText(
+                              '$batchStudentsCount / ${batch.capacity}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                                color: accentColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
             const SizedBox(height: 28),
 
             // Coach Actions
@@ -715,13 +790,13 @@ class DashboardScreen extends ConsumerWidget {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.95,
+              childAspectRatio: 0.82,
               children: [
                 _ActionCard(
-                  label: 'Mark\nAttendance',
+                  label: isRestrictedCoach ? 'Mark Attendance\n(Restricted)' : 'Mark\nAttendance',
                   icon: Icons.checklist_rounded,
-                  color: AppTheme.accentTeal,
-                  onTap: batch == null ? null : () => context.push('/attendance'),
+                  color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentTeal,
+                  onTap: (batch == null || isRestrictedCoach) ? null : () => context.push('/attendance'),
                 ),
                 _ActionCard(
                   label: 'View\nStudents',
@@ -730,10 +805,10 @@ class DashboardScreen extends ConsumerWidget {
                   onTap: batch == null ? null : () => context.push('/students'),
                 ),
                 _ActionCard(
-                  label: 'Add\nStudent',
+                  label: isRestrictedCoach ? 'Add Student\n(Restricted)' : 'Add\nStudent',
                   icon: Icons.person_add_alt_1_rounded,
-                  color: AppTheme.accentPurple,
-                  onTap: batch == null ? null : () => context.push('/students/new'),
+                  color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentPurple,
+                  onTap: (batch == null || isRestrictedCoach) ? null : () => context.push('/students/new'),
                 ),
               ],
             ),

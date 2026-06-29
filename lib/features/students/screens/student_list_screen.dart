@@ -3,12 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/models/student.dart';
+import '../../../shared/models/batch.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/student_repository.dart';
+import '../repositories/batch_repository.dart';
 
 final studentListProvider = FutureProvider.autoDispose<List<Student>>((ref) async {
   final studentRepo = ref.watch(studentRepositoryProvider);
   return await studentRepo.getStudents();
+});
+
+final studentListBatchesProvider = FutureProvider.autoDispose<List<Batch>>((ref) async {
+  final repo = ref.watch(batchRepositoryProvider);
+  return await repo.getBatches();
 });
 
 class StudentListScreen extends ConsumerStatefulWidget {
@@ -20,6 +27,9 @@ class StudentListScreen extends ConsumerStatefulWidget {
 
 class _StudentListScreenState extends ConsumerState<StudentListScreen> {
   String _searchQuery = '';
+  String _selectedStatusFilter = 'all'; // 'all' | 'active' | 'inactive'
+  String _selectedSportFilter = 'all'; // 'all' | 'cricket' | 'football'
+  String? _selectedBatchIdFilter; // null = all
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +37,13 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
     final profile = authState.profile!;
     final studentListAsync = ref.watch(studentListProvider);
 
+    final isRestrictedCoach = profile.isCoach && !profile.isActive;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Students'),
         actions: [
-          if (profile.isAdmin || profile.isCoach)
+          if ((profile.isAdmin || profile.isCoach) && !isRestrictedCoach)
             Container(
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
@@ -53,7 +65,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
         children: [
           // Search Field
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search by name or phone...',
@@ -77,6 +89,70 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
               },
             ),
           ),
+          
+          // Filters row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildDropdownFilter(
+                    value: _selectedStatusFilter,
+                    items: const [
+                      DropdownMenuItem(value: 'all', child: Text('All Status')),
+                      DropdownMenuItem(value: 'active', child: Text('Active')),
+                      DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
+                    ],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedStatusFilter = val!;
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  _buildDropdownFilter(
+                    value: _selectedSportFilter,
+                    items: const [
+                      DropdownMenuItem(value: 'all', child: Text('All Sports')),
+                      DropdownMenuItem(value: 'cricket', child: Text('Cricket')),
+                      DropdownMenuItem(value: 'football', child: Text('Football')),
+                    ],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSportFilter = val!;
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final batchesAsync = ref.watch(studentListBatchesProvider);
+                      return batchesAsync.when(
+                        data: (batches) {
+                          return _buildDropdownFilter(
+                            value: _selectedBatchIdFilter,
+                            items: [
+                              const DropdownMenuItem<String>(value: null, child: Text('All Batches')),
+                              ...batches.map((b) => DropdownMenuItem<String>(value: b.id, child: Text(b.name))),
+                            ],
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedBatchIdFilter = val;
+                              });
+                            },
+                          );
+                        },
+                        loading: () => const SizedBox(),
+                        error: (err, stack) => const SizedBox(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           Expanded(
             child: RefreshIndicator(
               color: AppTheme.accentLime,
@@ -108,7 +184,13 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                   final filtered = students.where((s) {
                     final matchesName = s.name.toLowerCase().contains(_searchQuery);
                     final matchesPhone = s.phone?.toLowerCase().contains(_searchQuery) ?? false;
-                    return matchesName || matchesPhone;
+                    final matchesSearch = matchesName || matchesPhone;
+                    
+                    final matchesStatus = _selectedStatusFilter == 'all' || s.status == _selectedStatusFilter;
+                    final matchesSport = _selectedSportFilter == 'all' || s.sport == _selectedSportFilter;
+                    final matchesBatch = _selectedBatchIdFilter == null || s.batchId == _selectedBatchIdFilter;
+
+                    return matchesSearch && matchesStatus && matchesSport && matchesBatch;
                   }).toList();
 
                   if (filtered.isEmpty) {
@@ -122,7 +204,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                               Icon(Icons.people_outline_rounded, size: 56, color: AppTheme.textMuted),
                               const SizedBox(height: 12),
                               Text(
-                                _searchQuery.isEmpty ? 'No students yet' : 'No students found',
+                                _searchQuery.isEmpty ? 'No students matches' : 'No students found',
                                 style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15),
                               ),
                             ],
@@ -138,7 +220,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     itemBuilder: (context, index) {
                       final student = filtered[index];
-                      return _buildStudentCard(context, ref, student, profile.isAdmin);
+                      return _buildStudentCard(context, ref, student);
                     },
                   );
                 },
@@ -150,7 +232,32 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
     );
   }
 
-  Widget _buildStudentCard(BuildContext context, WidgetRef ref, Student student, bool isAdmin) {
+  Widget _buildDropdownFilter<T>({
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.darkCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.darkBorder),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          items: items,
+          onChanged: onChanged,
+          dropdownColor: AppTheme.darkCard,
+          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary, size: 20),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStudentCard(BuildContext context, WidgetRef ref, Student student) {
     final sportColor = student.sport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
 
     return Container(
@@ -166,17 +273,15 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
           borderRadius: BorderRadius.circular(18),
           mouseCursor: SystemMouseCursors.click,
           onTap: () async {
-            await context.push('/students/edit', extra: student);
+            await context.push('/students/profile', extra: student);
             ref.invalidate(studentListProvider);
           },
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Photo
                 _buildStudentPhoto(ref, student.photoUrl, sportColor),
                 const SizedBox(width: 14),
-                // Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +319,6 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                     ],
                   ),
                 ),
-                // Status badge + chevron
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -319,3 +423,4 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
     );
   }
 }
+
