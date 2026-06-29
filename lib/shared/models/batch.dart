@@ -3,6 +3,10 @@ class Batch {
   final String name;
   final String sport; // 'cricket' | 'football'
   final String? coachId;
+  final int capacity;
+  final List<String> days;
+  final String? startTime;
+  final String? endTime;
   final DateTime createdAt;
 
   Batch({
@@ -10,6 +14,10 @@ class Batch {
     required this.name,
     required this.sport,
     this.coachId,
+    required this.capacity,
+    required this.days,
+    this.startTime,
+    this.endTime,
     required this.createdAt,
   });
 
@@ -19,6 +27,10 @@ class Batch {
       name: json['name'] as String,
       sport: json['sport'] as String,
       coachId: json['coach_id'] as String?,
+      capacity: json['capacity'] as int? ?? 20,
+      days: json['days'] != null ? (json['days'] as List).cast<String>() : [],
+      startTime: json['start_time'] as String?,
+      endTime: json['end_time'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -29,6 +41,10 @@ class Batch {
       'name': name,
       'sport': sport,
       'coach_id': coachId,
+      'capacity': capacity,
+      'days': days,
+      'start_time': startTime,
+      'end_time': endTime,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -38,6 +54,10 @@ class Batch {
     String? name,
     String? sport,
     String? coachId,
+    int? capacity,
+    List<String>? days,
+    String? startTime,
+    String? endTime,
     DateTime? createdAt,
   }) {
     return Batch(
@@ -45,7 +65,12 @@ class Batch {
       name: name ?? this.name,
       sport: sport ?? this.sport,
       coachId: coachId ?? this.coachId,
+      capacity: capacity ?? this.capacity,
+      days: days ?? this.days,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 }
+

@@ -1,4 +1,3 @@
-// GoRouter Configuration
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,12 +7,17 @@ import '../../features/auth/screens/change_password_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/students/screens/student_list_screen.dart';
 import '../../features/students/screens/student_form_screen.dart';
+import '../../features/students/screens/student_profile_screen.dart';
 import '../../shared/models/student.dart';
+import '../../shared/models/batch.dart';
 import '../../features/attendance/screens/attendance_screen.dart';
 import '../../features/fees/screens/fees_screen.dart';
 import '../../features/expenses/screens/expenses_screen.dart';
 import '../../features/reports/screens/reports_screen.dart';
 import '../../features/users/screens/coaches_screen.dart';
+import '../../features/batches/screens/batch_list_screen.dart';
+import '../../features/batches/screens/batch_form_screen.dart';
+import '../../features/settings/screens/settings_screen.dart';
 
 class AuthRefreshListenable extends ChangeNotifier {
   AuthRefreshListenable(Ref ref) {
@@ -67,6 +71,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/students/profile',
+        builder: (context, state) {
+          final student = state.extra as Student;
+          return StudentProfileScreen(student: student);
+        },
+      ),
+      GoRoute(
+        path: '/batches',
+        builder: (context, state) => const BatchListScreen(),
+      ),
+      GoRoute(
+        path: '/batches/new',
+        builder: (context, state) => const BatchFormScreen(),
+      ),
+      GoRoute(
+        path: '/batches/edit',
+        builder: (context, state) {
+          final batch = state.extra as Batch?;
+          return BatchFormScreen(batch: batch);
+        },
+      ),
+      GoRoute(
         path: '/attendance',
         builder: (context, state) => const AttendanceScreen(),
       ),
@@ -85,6 +111,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/users',
         builder: (context, state) => const CoachesScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
       ),
     ],
     redirect: (context, state) {
@@ -119,7 +149,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 5. Role restrictions: Coaches cannot access admin routes
       if (profile.isCoach) {
-        final adminOnlyPaths = ['/fees', '/expenses', '/reports', '/users'];
+        final adminOnlyPaths = ['/fees', '/expenses', '/reports', '/users', '/batches', '/settings'];
         if (adminOnlyPaths.contains(state.matchedLocation)) {
           return '/dashboard';
         }
@@ -129,4 +159,5 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
   );
 });
+
 

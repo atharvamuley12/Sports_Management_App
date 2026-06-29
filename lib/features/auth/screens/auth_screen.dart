@@ -73,15 +73,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     super.dispose();
   }
 
-  void _toggleMode() {
-    ref.read(authControllerProvider.notifier).clearError();
-    _formAnimController.reset();
-    setState(() {
-      _isSignUp = !_isSignUp;
-    });
-    _formAnimController.forward();
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -89,72 +80,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    bool success = false;
-    if (_isSignUp) {
-      final name = _fullNameController.text.trim();
-      final phone = _phoneController.text.trim();
-
-      success = await authNotifier.signUp(
-        email: email,
-        password: password,
-        fullName: name,
-        phone: phone,
-        role: _selectedRole,
-      );
-
-      if (success && mounted) {
-        final currentUser = supabase.Supabase.instance.client.auth.currentUser;
-        if (currentUser == null) {
-          _showVerifyEmailDialog();
-        } else {
-          _showSuccessSnackBar(
-            'Welcome! Registered successfully as ${_selectedRole == 'admin' ? 'Admin' : 'Coach'}.',
-          );
-        }
-      }
-    } else {
-      success = await authNotifier.signIn(email, password);
-      if (success && mounted) {
-        _showSuccessSnackBar('Welcome back! Signed in successfully.');
-      }
+    final success = await authNotifier.signIn(email, password);
+    if (success && mounted) {
+      _showSuccessSnackBar('Welcome back! Signed in successfully.');
     }
-  }
-
-  void _showVerifyEmailDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.accentTeal.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.mark_email_read_outlined,
-                  color: AppTheme.accentTeal, size: 24),
-            ),
-            const SizedBox(width: 12),
-            const Text('Verify Your Email'),
-          ],
-        ),
-        content: const Text(
-          'A confirmation link has been sent to your email address. '
-          'Please verify it to complete your registration.',
-          style: TextStyle(color: AppTheme.textSecondary, height: 1.5),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              setState(() => _isSignUp = false);
-            },
-            child: const Text('Got it'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showSuccessSnackBar(String message) {
@@ -184,10 +113,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Animated background
           _AnimatedBackground(controller: _bgAnimController, roleColor: roleColor),
-
-          // Main content
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -206,8 +132,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                           _buildHeader(roleColor),
                           const SizedBox(height: 32),
                           _buildFormCard(authState, roleColor),
-                          const SizedBox(height: 20),
-                          _buildToggleSection(roleColor),
                         ],
                       ),
                     ),
@@ -224,7 +148,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   Widget _buildHeader(Color roleColor) {
     return Column(
       children: [
-        // Animated logo
         TweenAnimationBuilder<double>(
           tween: Tween(begin: 0.0, end: 1.0),
           duration: const Duration(milliseconds: 800),
@@ -270,8 +193,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           ),
         ),
         const SizedBox(height: 20),
-
-        // Title with gradient text effect
         ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Colors.white, roleColor.withValues(alpha: 0.8)],
@@ -288,19 +209,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           ),
         ),
         const SizedBox(height: 8),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: Text(
-            _isSignUp
-                ? 'Create your account to get started'
-                : 'Welcome back! Sign in to continue',
-            key: ValueKey(_isSignUp),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 15,
-              color: AppTheme.textSecondary,
-              letterSpacing: 0.2,
-            ),
+        const Text(
+          'Welcome back! Sign in to continue',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 15,
+            color: AppTheme.textSecondary,
+            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -335,96 +250,47 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Role switcher
             _buildRoleSwitcher(roleColor),
             const SizedBox(height: 24),
-
-            // Error display
             if (authState.errorMessage != null)
               _buildErrorBanner(authState.errorMessage!),
-
-            // Dynamic form fields
-            AnimatedSize(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOut,
-              child: Column(
-                children: [
-                  if (_isSignUp) ...[
-                    _buildTextField(
-                      controller: _fullNameController,
-                      label: 'Full Name',
-                      icon: Icons.person_outline_rounded,
-                      textCapitalization: TextCapitalization.words,
-                      validator: (value) {
-                        if (_isSignUp && (value == null || value.isEmpty)) {
-                          return 'Please enter your full name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _phoneController,
-                      label: 'Phone Number',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (_isSignUp && (value == null || value.isEmpty)) {
-                          return 'Please enter your phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  _buildTextField(
-                    controller: _emailController,
-                    label: 'Email Address',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@') || !value.contains('.')) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildPasswordField(),
-                ],
-              ),
+            _buildTextField(
+              controller: _emailController,
+              label: 'Email Address',
+              icon: Icons.email_outlined,
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!value.contains('@') || !value.contains('.')) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
             ),
+            const SizedBox(height: 16),
+            _buildPasswordField(),
             const SizedBox(height: 8),
-
-            // Forgot password link (sign-in only)
-            if (!_isSignUp)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // Show forgot password dialog
-                    _showForgotPasswordDialog();
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    foregroundColor: roleColor,
-                  ),
-                  child: Text(
-                    'Forgot password?',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: roleColor.withValues(alpha: 0.8),
-                      fontWeight: FontWeight.w600,
-                    ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _showForgotPasswordDialog,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  foregroundColor: roleColor,
+                ),
+                child: Text(
+                  'Forgot password?',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: roleColor.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+            ),
             const SizedBox(height: 20),
-
-            // Submit button
             _buildSubmitButton(authState, roleColor),
           ],
         ),
@@ -524,7 +390,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     );
   }
 
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -572,9 +437,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Please enter a password';
-        }
-        if (_isSignUp && value.length < 6) {
-          return 'Password must be at least 6 characters';
         }
         return null;
       },
@@ -667,18 +529,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    _isSignUp
-                        ? Icons.person_add_alt_1_rounded
-                        : Icons.login_rounded,
+                  const Icon(
+                    Icons.login_rounded,
                     size: 20,
                     color: Colors.black,
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    _isSignUp
-                        ? 'Create ${_selectedRole == 'admin' ? 'Admin' : 'Coach'} Account'
-                        : 'Sign In',
+                    'Sign In',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -689,36 +547,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 ],
               ),
       ),
-    );
-  }
-
-  Widget _buildToggleSection(Color roleColor) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          _isSignUp ? 'Already have an account?' : "Don't have an account?",
-          style: const TextStyle(
-            color: AppTheme.textSecondary,
-            fontSize: 14,
-          ),
-        ),
-        TextButton(
-          onPressed: _toggleMode,
-          style: TextButton.styleFrom(
-            foregroundColor: roleColor,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-          ),
-          child: Text(
-            _isSignUp ? 'Sign In' : 'Sign Up',
-            style: TextStyle(
-              color: roleColor,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

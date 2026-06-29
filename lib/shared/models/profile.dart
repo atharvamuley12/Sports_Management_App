@@ -2,6 +2,7 @@ class Profile {
   final String id;
   final String fullName;
   final String? phone;
+  final String? email;
   final String role; // 'admin' | 'coach'
   final bool isActive;
   final bool mustChangePassword;
@@ -11,6 +12,7 @@ class Profile {
     required this.id,
     required this.fullName,
     this.phone,
+    this.email,
     required this.role,
     required this.isActive,
     required this.mustChangePassword,
@@ -22,6 +24,7 @@ class Profile {
       id: json['id'] as String,
       fullName: json['full_name'] as String,
       phone: json['phone'] as String?,
+      email: json['email'] as String?,
       role: json['role'] as String,
       isActive: json['is_active'] as bool? ?? true,
       mustChangePassword: json['must_change_password'] as bool? ?? true,
@@ -34,6 +37,7 @@ class Profile {
       'id': id,
       'full_name': fullName,
       'phone': phone,
+      'email': email,
       'role': role,
       'is_active': isActive,
       'must_change_password': mustChangePassword,
@@ -48,6 +52,7 @@ class Profile {
     String? id,
     String? fullName,
     String? phone,
+    String? email,
     String? role,
     bool? isActive,
     bool? mustChangePassword,
@@ -57,6 +62,7 @@ class Profile {
       id: id ?? this.id,
       fullName: fullName ?? this.fullName,
       phone: phone ?? this.phone,
+      email: email ?? this.email,
       role: role ?? this.role,
       isActive: isActive ?? this.isActive,
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,

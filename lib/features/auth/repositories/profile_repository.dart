@@ -76,4 +76,34 @@ class ProfileRepository {
         .update({'is_active': isActive})
         .eq('id', id);
   }
+
+  /// Resets a coach's password securely (Admin only RPC).
+  Future<void> resetCoachPassword(String coachId, String newPassword) async {
+    await _supabase.rpc(
+      'reset_coach_password',
+      params: {
+        'coach_id': coachId,
+        'new_password': newPassword,
+      },
+    );
+  }
+
+  /// Updates a coach's profile details (Admin only RPC).
+  Future<void> updateCoachProfile({
+    required String coachId,
+    required String name,
+    required String phone,
+    required String email,
+  }) async {
+    await _supabase.rpc(
+      'update_coach_profile',
+      params: {
+        'coach_id': coachId,
+        'new_name': name,
+        'new_phone': phone,
+        'new_email': email,
+      },
+    );
+  }
 }
+

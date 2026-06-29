@@ -96,6 +96,20 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                             ],
                           ),
                         ),
+                        // Edit Coach Details
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          onPressed: () => _showEditCoachDialog(coach),
+                          tooltip: 'Edit Details',
+                          color: AppTheme.textSecondary,
+                        ),
+                        // Reset Password
+                        IconButton(
+                          icon: const Icon(Icons.lock_reset_rounded, size: 20),
+                          onPressed: () => _showResetPasswordDialog(coach),
+                          tooltip: 'Reset Password',
+                          color: AppTheme.textSecondary,
+                        ),
                         // Active switch
                         Switch(
                           value: coach.isActive,
@@ -107,7 +121,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                               ref.invalidate(coachesListProvider);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Coach status updated!')),
+                                  const SnackBar(content: Text('Coach status updated!')),
                                 );
                               }
                             } catch (e) {
@@ -125,6 +139,187 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  void _showEditCoachDialog(Profile coach) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          final formKey = GlobalKey<FormState>();
+          final nameController = TextEditingController(text: coach.fullName);
+          final phoneController = TextEditingController(text: coach.phone ?? '');
+          final emailController = TextEditingController(text: coach.email ?? '');
+
+          Future<void> submit() async {
+            if (!formKey.currentState!.validate()) return;
+
+            setState(() {
+              _isSaving = true;
+            });
+
+            try {
+              final repo = ref.read(profileRepositoryProvider);
+              await repo.updateCoachProfile(
+                coachId: coach.id,
+                name: nameController.text.trim(),
+                phone: phoneController.text.trim().isEmpty ? '' : phoneController.text.trim(),
+                email: emailController.text.trim(),
+              );
+
+              ref.invalidate(coachesListProvider);
+              if (mounted) {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Coach profile updated successfully!')),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ErrorHandler.showError(context, 'Failed to update coach profile', e);
+              }
+            } finally {
+              setState(() {
+                _isSaving = false;
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Edit Coach Details'),
+            content: _isSaving
+                ? const SizedBox(
+                    height: 100,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: nameController,
+                          decoration: const InputDecoration(labelText: 'Full Name *'),
+                          validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(labelText: 'Email Address *'),
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) return 'Enter email';
+                            if (!val.contains('@')) return 'Enter a valid email';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(labelText: 'Phone Number'),
+                        ),
+                      ],
+                    ),
+                  ),
+            actions: [
+              TextButton(
+                onPressed: _isSaving ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: _isSaving ? null : submit,
+                child: const Text('Save Details'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showResetPasswordDialog(Profile coach) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          final formKey = GlobalKey<FormState>();
+          final passwordController = TextEditingController();
+
+          Future<void> submit() async {
+            if (!formKey.currentState!.validate()) return;
+
+            setState(() {
+              _isSaving = true;
+            });
+
+            try {
+              final repo = ref.read(profileRepositoryProvider);
+              await repo.resetCoachPassword(coach.id, passwordController.text);
+
+              if (mounted) {
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Password reset successfully for ${coach.fullName}!')),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ErrorHandler.showError(context, 'Failed to reset password', e);
+              }
+            } finally {
+              setState(() {
+                _isSaving = false;
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: Text('Reset Password for ${coach.fullName}'),
+            content: _isSaving
+                ? const SizedBox(
+                    height: 100,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: passwordController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            labelText: 'New Password *',
+                            hintText: 'Must be at least 6 characters',
+                          ),
+                          validator: (val) {
+                            if (val == null || val.isEmpty) return 'Enter password';
+                            if (val.length < 6) return 'Password must be at least 6 characters';
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+            actions: [
+              TextButton(
+                onPressed: _isSaving ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: _isSaving ? null : submit,
+                child: const Text('Reset Password'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
