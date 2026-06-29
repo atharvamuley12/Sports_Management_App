@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/models/student.dart';
 import '../../../shared/models/batch.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/student_repository.dart';
 import '../repositories/batch_repository.dart';
@@ -44,19 +45,21 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
         title: const Text('Students'),
         actions: [
           if ((profile.isAdmin || profile.isCoach) && !isRestrictedCoach)
-            Container(
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                gradient: AppTheme.limeGradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.person_add_alt_1_rounded, size: 20, color: Colors.black),
-                onPressed: () async {
-                  await context.push('/students/new');
-                  ref.invalidate(studentListProvider);
-                },
-                tooltip: 'Add Student',
+            Padding(
+              padding: const EdgeInsets.only(right: AppTheme.space12),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.limeGradient,
+                  borderRadius: BorderRadius.circular(AppTheme.radius12),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 20, color: Colors.black),
+                  onPressed: () async {
+                    await context.push('/students/new');
+                    ref.invalidate(studentListProvider);
+                  },
+                  tooltip: 'Add Student',
+                ),
               ),
             ),
         ],
@@ -65,23 +68,9 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
         children: [
           // Search Field
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search by name or phone...',
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                filled: true,
-                fillColor: AppTheme.darkCard,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppTheme.darkBorder),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppTheme.darkBorder),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              ),
+            padding: const EdgeInsets.fromLTRB(AppTheme.space16, AppTheme.space12, AppTheme.space16, AppTheme.space4),
+            child: AppSearchBar(
+              hint: 'Search by name or phone...',
               onChanged: (val) {
                 setState(() {
                   _searchQuery = val.toLowerCase();
@@ -92,7 +81,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
           
           // Filters row
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(AppTheme.space16, AppTheme.space4, AppTheme.space16, AppTheme.space8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -110,7 +99,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                       });
                     },
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppTheme.space8),
                   _buildDropdownFilter(
                     value: _selectedSportFilter,
                     items: const [
@@ -124,7 +113,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                       });
                     },
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppTheme.space8),
                   Consumer(
                     builder: (context, ref, child) {
                       final batchesAsync = ref.watch(studentListBatchesProvider);
@@ -156,29 +145,15 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
           Expanded(
             child: RefreshIndicator(
               color: AppTheme.accentLime,
+              backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
               onRefresh: () async {
                 ref.invalidate(studentListProvider);
               },
               child: studentListAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppTheme.accentLime, strokeWidth: 2.5),
-                ),
-                error: (err, stack) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline_rounded, size: 40, color: AppTheme.errorRed),
-                        const SizedBox(height: 12),
-                        SelectableText(
-                          'Error loading students: $err',
-                          style: const TextStyle(color: AppTheme.errorRed, fontSize: 13),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
+                loading: () => const AppLoadingState(itemCount: 5, itemHeight: 92),
+                error: (err, stack) => AppErrorState(
+                  message: err.toString(),
+                  onRetry: () => ref.invalidate(studentListProvider),
                 ),
                 data: (students) {
                   final filtered = students.where((s) {
@@ -197,18 +172,13 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
-                        const SizedBox(height: 80),
-                        Center(
-                          child: Column(
-                            children: [
-                              Icon(Icons.people_outline_rounded, size: 56, color: AppTheme.textMuted),
-                              const SizedBox(height: 12),
-                              Text(
-                                _searchQuery.isEmpty ? 'No students matches' : 'No students found',
-                                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15),
-                              ),
-                            ],
-                          ),
+                        const SizedBox(height: 60),
+                        AppEmptyState(
+                          icon: Icons.people_outline_rounded,
+                          title: _searchQuery.isEmpty ? 'No students match filters' : 'No students found',
+                          subtitle: _searchQuery.isEmpty
+                              ? 'Try changing your status, sport, or batch filters above.'
+                              : 'No students match your query "$_searchQuery".',
                         ),
                       ],
                     );
@@ -217,7 +187,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                   return ListView.builder(
                     itemCount: filtered.length,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
                     itemBuilder: (context, index) {
                       final student = filtered[index];
                       return _buildStudentCard(context, ref, student);
@@ -237,21 +207,29 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
   }) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12),
       decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.darkBorder),
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radius12),
+        border: Border.all(color: theme.colorScheme.outline),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           items: items,
           onChanged: onChanged,
-          dropdownColor: AppTheme.darkCard,
-          style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
-          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.textSecondary, size: 20),
+          dropdownColor: theme.cardTheme.color ?? theme.colorScheme.surface,
+          style: AppTheme.subtitle2.copyWith(
+            fontSize: 13,
+            color: theme.textTheme.bodyMedium?.color,
+          ),
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: theme.textTheme.bodyMedium?.color ?? AppTheme.textSecondary,
+            size: 20,
+          ),
         ),
       ),
     );
@@ -260,96 +238,63 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
   Widget _buildStudentCard(BuildContext context, WidgetRef ref, Student student) {
     final sportColor = student.sport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.darkBorder),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          mouseCursor: SystemMouseCursors.click,
-          onTap: () async {
-            await context.push('/students/profile', extra: student);
-            ref.invalidate(studentListProvider);
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                _buildStudentPhoto(ref, student.photoUrl, sportColor),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.space10),
+      child: AppCard(
+        padding: const EdgeInsets.all(AppTheme.space12),
+        onTap: () async {
+          await context.push('/students/profile', extra: student);
+          ref.invalidate(studentListProvider);
+        },
+        child: Row(
+          children: [
+            _buildStudentPhoto(ref, student.photoUrl, sportColor),
+            const SizedBox(width: AppTheme.space14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    student.name,
+                    style: AppTheme.subtitle1,
+                  ),
+                  const SizedBox(height: AppTheme.space4),
+                  Row(
                     children: [
-                      SelectableText(
-                        student.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (student.age != null)
-                            _infoPill('Age ${student.age}', AppTheme.textMuted),
-                          if (student.age != null) const SizedBox(width: 6),
-                          _infoPill(
-                            student.sport.toUpperCase(),
-                            sportColor,
-                            isBold: true,
-                          ),
-                        ],
-                      ),
-                      if (student.phone != null) ...[
-                        const SizedBox(height: 4),
-                        SelectableText(
-                          student.phone!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textMuted,
-                          ),
-                        ),
-                      ],
+                      if (student.age != null)
+                        _infoPill('Age ${student.age}', AppTheme.textMuted),
+                      if (student.age != null) const SizedBox(width: AppTheme.space6),
+                      AppStatusChip.sport(student.sport),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: (student.isActive ? AppTheme.successGreen : AppTheme.errorRed)
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: (student.isActive ? AppTheme.successGreen : AppTheme.errorRed)
-                              .withValues(alpha: 0.3),
+                  if (student.phone != null && student.phone!.isNotEmpty) ...[
+                    const SizedBox(height: AppTheme.space6),
+                    Row(
+                      children: [
+                        const Icon(Icons.phone_rounded, size: 12, color: AppTheme.textMuted),
+                        const SizedBox(width: AppTheme.space4),
+                        Text(
+                          student.phone!,
+                          style: AppTheme.caption,
                         ),
-                      ),
-                      child: Text(
-                        student.status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: student.isActive ? AppTheme.successGreen : AppTheme.errorRed,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    const Icon(Icons.chevron_right_rounded, size: 20, color: AppTheme.textMuted),
                   ],
-                ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (student.isActive)
+                  AppStatusChip.active()
+                else
+                  AppStatusChip.inactive(),
+                const SizedBox(height: AppTheme.space14),
+                const Icon(Icons.chevron_right_rounded, size: 20, color: AppTheme.textMuted),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -357,18 +302,18 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
 
   Widget _infoPill(String text, Color color, {bool isBold = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radius6),
+        border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+        style: AppTheme.overline.copyWith(
+          fontSize: 9,
+          fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
           color: color,
-          letterSpacing: isBold ? 0.5 : 0,
         ),
       ),
     );
@@ -377,50 +322,51 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
   Widget _buildStudentPhoto(WidgetRef ref, String? path, Color fallbackColor) {
     if (path == null || path.isEmpty) {
       return Container(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
-          color: fallbackColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(14),
+          color: fallbackColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
+          border: Border.all(color: fallbackColor.withValues(alpha: 0.15)),
         ),
-        child: Icon(Icons.person_rounded, color: fallbackColor, size: 24),
+        child: Icon(Icons.person_rounded, color: fallbackColor, size: 26),
       );
     }
 
     final bytesAsync = ref.watch(studentPhotoBytesProvider(path));
     return bytesAsync.when(
       data: (bytes) => Container(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
           image: DecorationImage(image: MemoryImage(bytes), fit: BoxFit.cover),
+          border: Border.all(color: AppTheme.darkBorder),
         ),
       ),
       loading: () => Container(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
           color: AppTheme.darkSurface,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
         ),
         child: const Center(
           child: SizedBox(
-            height: 16, width: 16,
+            height: 14, width: 14,
             child: CircularProgressIndicator(strokeWidth: 1.5, color: AppTheme.accentLime),
           ),
         ),
       ),
       error: (err, stack) => Container(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
-          color: AppTheme.errorRed.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(14),
+          color: AppTheme.errorRed.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
         ),
-        child: const Icon(Icons.error_outline, color: AppTheme.errorRed, size: 20),
+        child: const Icon(Icons.error_outline, color: AppTheme.errorRed, size: 18),
       ),
     );
   }
 }
-

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/supabase/supabase_client.dart';
+import '../../../shared/utils/seed_helper.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../core/utils/error_handler.dart';
 
@@ -23,122 +25,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     try {
       final supabase = ref.read(supabaseClientProvider);
-      final profile = ref.read(authControllerProvider).profile!;
-
-      // 1. Seed Batches
-      final batch1 = await supabase.from('batches').insert({
-        'name': 'Cricket Academy Junior',
-        'sport': 'cricket',
-        'coach_id': profile.isCoach ? profile.id : null,
-        'capacity': 15,
-        'days': ['Monday', 'Wednesday', 'Friday'],
-        'start_time': '04:00 PM',
-        'end_time': '05:30 PM',
-      }).select().single();
-
-      final batch2 = await supabase.from('batches').insert({
-        'name': 'Football Elite Club',
-        'sport': 'football',
-        'coach_id': null,
-        'capacity': 25,
-        'days': ['Tuesday', 'Thursday', 'Saturday'],
-        'start_time': '05:00 PM',
-        'end_time': '06:30 PM',
-      }).select().single();
-
-      final b1Id = batch1['id'] as String;
-      final b2Id = batch2['id'] as String;
-
-      // 2. Seed Students
-      final s1 = await supabase.from('students').insert({
-        'name': 'John Doe',
-        'age': 12,
-        'sport': 'cricket',
-        'status': 'active',
-        'batch_id': b1Id,
-        'parent_name': 'Robert Doe',
-        'phone': '9876543210',
-        'join_date': DateTime.now().subtract(const Duration(days: 30)).toIso8601String(),
-      }).select().single();
-
-      final s2 = await supabase.from('students').insert({
-        'name': 'Jane Smith',
-        'age': 14,
-        'sport': 'cricket',
-        'status': 'active',
-        'batch_id': b1Id,
-        'parent_name': 'Mary Smith',
-        'phone': '9876543211',
-        'join_date': DateTime.now().subtract(const Duration(days: 20)).toIso8601String(),
-      }).select().single();
-
-      await supabase.from('students').insert({
-        'name': 'Alex Mercer',
-        'age': 15,
-        'sport': 'football',
-        'status': 'active',
-        'batch_id': b2Id,
-        'parent_name': 'Ken Mercer',
-        'phone': '9876543212',
-        'join_date': DateTime.now().subtract(const Duration(days: 15)).toIso8601String(),
-      });
-
-      final s1Id = s1['id'] as String;
-      final s2Id = s2['id'] as String;
-
-      // 3. Seed Attendance Logs
-      await supabase.from('attendance').insert([
-        {
-          'student_id': s1Id,
-          'date': DateTime.now().subtract(const Duration(days: 2)).toIso8601String().substring(0, 10),
-          'status': 'present',
-          'marked_by': profile.id,
-        },
-        {
-          'student_id': s2Id,
-          'date': DateTime.now().subtract(const Duration(days: 2)).toIso8601String().substring(0, 10),
-          'status': 'absent',
-          'marked_by': profile.id,
-        },
-        {
-          'student_id': s1Id,
-          'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String().substring(0, 10),
-          'status': 'present',
-          'marked_by': profile.id,
-        },
-        {
-          'student_id': s2Id,
-          'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String().substring(0, 10),
-          'status': 'present',
-          'marked_by': profile.id,
-        },
-      ]);
-
-      // 4. Seed Payments
-      await supabase.from('payments').insert([
-        {
-          'student_id': s1Id,
-          'amount': 2500,
-          'month': 6,
-          'year': 2026,
-          'mode': 'upi',
-          'payment_date': DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
-        },
-        {
-          'student_id': s2Id,
-          'amount': 2500,
-          'month': 6,
-          'year': 2026,
-          'mode': 'cash',
-          'payment_date': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
-        },
-      ]);
+      await SeedHelper.seedTestData(supabase);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Database successfully seeded with mock Batches, Students, Attendance & Payments!'),
-            backgroundColor: AppTheme.successGreen,
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: AppTheme.successGreen, size: 20),
+                const SizedBox(width: AppTheme.space12),
+                Text(
+                  'Database successfully seeded!',
+                  style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.darkCard,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radius12)),
           ),
         );
       }
@@ -165,20 +69,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: const Text('Settings'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppTheme.space16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // User Profile Card
             _buildProfileCard(profile),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.space24),
+
+            // Appearance Preferences
+            const AppSectionHeader(
+              title: 'APPEARANCE',
+              icon: Icons.palette_rounded,
+            ),
+            const SizedBox(height: AppTheme.space12),
+            _buildThemeToggleTile(),
+            const SizedBox(height: AppTheme.space24),
 
             // General Actions
-            const Text(
-              'Security Actions',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textSecondary),
+            const AppSectionHeader(
+              title: 'SECURITY ACTIONS',
+              icon: Icons.security_rounded,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppTheme.space12),
             _buildActionTile(
               icon: Icons.vpn_key_rounded,
               title: 'Change Password',
@@ -188,15 +101,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 context.push('/change-password');
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.space24),
 
             // Admin Tools Section
             if (profile.isAdmin) ...[
-              const Text(
-                'Academy Administration & Debug Tools',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textSecondary),
+              const AppSectionHeader(
+                title: 'ADMINISTRATION & DEBUG TOOLS',
+                icon: Icons.admin_panel_settings_rounded,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppTheme.space12),
               _buildActionTile(
                 icon: Icons.storage_rounded,
                 title: 'Seed Database with Test Data',
@@ -218,59 +131,114 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildProfileCard(dynamic profile) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.darkBorder),
+  Widget _buildThemeToggleTile() {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      onTap: () {
+        ref.read(themeModeProvider.notifier).state =
+            isDark ? ThemeMode.light : ThemeMode.dark;
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: (isDark ? AppTheme.accentLime : AppTheme.accentTeal).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+                border: Border.all(
+                  color: (isDark ? AppTheme.accentLime : AppTheme.accentTeal).withValues(alpha: 0.15),
+                  width: 0.5,
+                ),
+              ),
+              child: Icon(
+                isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                color: isDark ? AppTheme.accentLime : AppTheme.accentTeal,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: AppTheme.space16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Theme Mode', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(height: AppTheme.space4),
+                  Text(
+                    isDark ? 'Dark Mode Active' : 'Light Mode Active',
+                    style: AppTheme.caption.copyWith(height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: isDark,
+              activeColor: AppTheme.accentLime,
+              onChanged: (val) {
+                ref.read(themeModeProvider.notifier).state =
+                    val ? ThemeMode.dark : ThemeMode.light;
+              },
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildProfileCard(dynamic profile) {
+    final isLimes = profile.isAdmin;
+    final roleColor = isLimes ? AppTheme.accentLime : AppTheme.accentTeal;
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppTheme.space20),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppTheme.space14),
             decoration: BoxDecoration(
-              color: profile.isAdmin
-                  ? AppTheme.accentLime.withValues(alpha: 0.15)
-                  : AppTheme.accentTeal.withValues(alpha: 0.15),
+              color: roleColor.withValues(alpha: 0.08),
               shape: BoxShape.circle,
+              border: Border.all(color: roleColor.withValues(alpha: 0.15)),
             ),
             child: Icon(
               profile.isAdmin ? Icons.shield_rounded : Icons.sports_rounded,
-              color: profile.isAdmin ? AppTheme.accentLime : AppTheme.accentTeal,
+              color: roleColor,
               size: 32,
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: AppTheme.space20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(
+                Text(
                   profile.fullName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  style: AppTheme.heading3,
                 ),
-                const SizedBox(height: 4),
-                SelectableText(
+                const SizedBox(height: AppTheme.space4),
+                Text(
                   ref.read(authControllerProvider).user?.email ?? 'No email associated',
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                  style: AppTheme.caption,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: AppTheme.space10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space10, vertical: AppTheme.space4),
                   decoration: BoxDecoration(
-                    color: AppTheme.darkBg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.darkBorder),
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    borderRadius: BorderRadius.circular(AppTheme.radius8),
+                    border: Border.all(color: Theme.of(context).colorScheme.outline),
                   ),
                   child: Text(
                     profile.role.toUpperCase(),
-                    style: TextStyle(
+                    style: AppTheme.overline.copyWith(
                       fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: profile.isAdmin ? AppTheme.accentLime : AppTheme.accentTeal,
-                      letterSpacing: 1.0,
+                      fontWeight: FontWeight.w800,
+                      color: roleColor,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -290,26 +258,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required VoidCallback? onTap,
     Widget? trailingWidget,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.darkBorder),
-      ),
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: ListTile(
         onTap: onTap,
         mouseCursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(AppTheme.space8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(12),
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppTheme.radius10),
+            border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
           ),
-          child: Icon(icon, color: color),
+          child: Icon(icon, color: color, size: 20),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, height: 1.4)),
+        title: Text(title, style: AppTheme.subtitle2),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: AppTheme.space4),
+          child: Text(subtitle, style: AppTheme.caption.copyWith(height: 1.4)),
+        ),
         trailing: trailingWidget ?? const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
       ),
     );

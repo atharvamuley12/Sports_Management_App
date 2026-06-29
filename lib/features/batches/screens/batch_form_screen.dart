@@ -8,6 +8,7 @@ import '../../auth/repositories/profile_repository.dart';
 import '../../students/repositories/batch_repository.dart';
 import '../../students/repositories/student_repository.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../shared/widgets/app_widgets.dart';
 
 final formCoachesProvider = FutureProvider.autoDispose<List<Profile>>((ref) async {
   final repo = ref.watch(profileRepositoryProvider);
@@ -82,6 +83,19 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppTheme.accentLime,
+              onPrimary: Colors.black,
+              surface: AppTheme.darkCard,
+              onSurface: AppTheme.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       if (mounted) {
@@ -122,12 +136,6 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
           endTime: _endTime,
         );
       } else {
-        // Create batch and get list update, since we need the ID we will insert and fetch
-        // Or wait, supabase insert doesn't directly return it here unless we do select()
-        // Let's perform standard insert. In Supabase we can select the inserted batch by name/time or use custom flow.
-        // Actually, we can fetch all batches after creation to find the newly created one,
-        // or just insert.
-        // Let's insert the batch
         await batchRepo.createBatch(
           name: _nameController.text.trim(),
           sport: _selectedSport,
@@ -138,7 +146,6 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
           endTime: _endTime,
         );
 
-        // Fetch batches to find the ID of the one we just created (matching name)
         final batchesList = await batchRepo.getBatches();
         final match = batchesList.where((b) => b.name == _nameController.text.trim()).toList();
         if (match.isNotEmpty) {
@@ -153,7 +160,13 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Batch ${isEdit ? 'updated' : 'created'} successfully!')),
+          SnackBar(
+            content: Text(
+              'Batch ${isEdit ? 'updated' : 'created'} successfully!',
+              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+            ),
+            backgroundColor: AppTheme.darkCard,
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -174,8 +187,24 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Batch'),
-        content: const Text('Are you sure you want to permanently delete this batch? All assigned students will be set to unassigned.'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed, size: 20),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Text('Delete Batch', style: AppTheme.heading3),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete this batch? All assigned students will be set to unassigned.',
+          style: AppTheme.body2.copyWith(height: 1.4),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -183,7 +212,10 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -207,7 +239,13 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Batch record deleted.')),
+          SnackBar(
+            content: Text(
+              'Batch record deleted.',
+              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+            ),
+            backgroundColor: AppTheme.darkCard,
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -228,6 +266,7 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
   Widget build(BuildContext context) {
     final coachesAsync = ref.watch(formCoachesProvider);
     final studentsAsync = ref.watch(formStudentsProvider);
+    final accentColor = _selectedSport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
 
     // Initial student selection mapping
     if (isEdit && _isFirstLoad && studentsAsync.hasValue) {
@@ -242,33 +281,50 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
         title: Text(isEdit ? 'Edit Batch' : 'Create Batch'),
         actions: [
           if (isEdit)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              onPressed: _isLoading ? null : _delete,
+            Padding(
+              padding: const EdgeInsets.only(right: AppTheme.space12),
+              child: AppIconButton(
+                icon: Icons.delete_outline_rounded,
+                color: AppTheme.errorRed,
+                onTap: _isLoading ? null : _delete,
+                tooltip: 'Delete Batch',
+              ),
             ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.accentLime))
+          ? Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(color: accentColor, strokeWidth: 2.5),
+              ),
+            )
           : Form(
               key: _formKey,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(AppTheme.space20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Section: General Details
+                    const AppSectionHeader(title: 'BATCH DETAILS', icon: Icons.layers_rounded),
+                    const SizedBox(height: AppTheme.space12),
+
                     TextFormField(
                       controller: _nameController,
+                      style: AppTheme.body1,
                       decoration: const InputDecoration(labelText: 'Batch Name *'),
                       validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
                     Row(
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             value: _selectedSport,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Sport *'),
                             items: const [
                               DropdownMenuItem(value: 'cricket', child: Text('Cricket')),
@@ -278,18 +334,18 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                               if (val != null) {
                                 setState(() {
                                   _selectedSport = val;
-                                  // Clear student selection when sport changes
                                   _assignedStudentIds.clear();
                                 });
                               }
                             },
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppTheme.space16),
                         Expanded(
                           child: TextFormField(
                             controller: _capacityController,
                             keyboardType: TextInputType.number,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Capacity *'),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Enter capacity';
@@ -300,15 +356,19 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
                     // Coach Selector
                     coachesAsync.when(
-                      loading: () => const LinearProgressIndicator(),
-                      error: (err, stack) => Text('Error loading coaches: $err'),
+                      loading: () => const Center(child: Padding(
+                        padding: EdgeInsets.all(AppTheme.space8),
+                        child: SizedBox(height: 2, child: LinearProgressIndicator()),
+                      )),
+                      error: (err, stack) => Text('Error loading coaches: $err', style: AppTheme.caption.copyWith(color: AppTheme.errorRed)),
                       data: (coaches) {
                         return DropdownButtonFormField<String>(
                           value: _selectedCoachId,
+                          style: AppTheme.body1,
                           decoration: const InputDecoration(labelText: 'Assigned Coach'),
                           items: [
                             const DropdownMenuItem<String>(value: null, child: Text('Unassigned')),
@@ -324,24 +384,25 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space24),
 
                     // Days selector
-                    const Text('Schedule Days *', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
-                    const SizedBox(height: 8),
+                    const AppSectionHeader(title: 'SCHEDULE DAYS *', icon: Icons.calendar_month_rounded),
+                    const SizedBox(height: AppTheme.space12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.darkCard,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.darkBorder),
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space8),
+                      decoration: AppTheme.subtleCard(borderRadius: AppTheme.radius16),
                       child: Wrap(
-                        spacing: 8,
+                        spacing: 6,
+                        runSpacing: 4,
                         children: _weekdays.map((day) {
                           final isSelected = _selectedDays.contains(day);
                           return FilterChip(
                             label: Text(day.substring(0, 3)),
+                            labelStyle: AppTheme.caption.copyWith(
+                              color: isSelected ? Colors.black : AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
                             selected: isSelected,
                             onSelected: (selected) {
                               setState(() {
@@ -352,15 +413,19 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                                 }
                               });
                             },
-                            selectedColor: _selectedSport == 'cricket' ? AppTheme.accentLime.withValues(alpha: 0.3) : AppTheme.accentTeal.withValues(alpha: 0.3),
-                            checkmarkColor: _selectedSport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radius8)),
+                            backgroundColor: Colors.transparent,
+                            selectedColor: accentColor,
+                            checkmarkColor: Colors.black,
                           );
                         }).toList(),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space24),
 
                     // Timings selector
+                    const AppSectionHeader(title: 'TIMINGS', icon: Icons.schedule_rounded),
+                    const SizedBox(height: AppTheme.space12),
                     Row(
                       children: [
                         Expanded(
@@ -370,13 +435,13 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'Start Time',
-                                suffixIcon: Icon(Icons.access_time),
+                                suffixIcon: Icon(Icons.access_time_rounded, size: 18),
                               ),
-                              child: Text(_startTime ?? 'Select start'),
+                              child: Text(_startTime ?? 'Select start', style: AppTheme.body1),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppTheme.space16),
                         Expanded(
                           child: InkWell(
                             onTap: () => _selectTime(false),
@@ -384,88 +449,109 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'End Time',
-                                suffixIcon: Icon(Icons.access_time),
+                                suffixIcon: Icon(Icons.access_time_rounded, size: 18),
                               ),
-                              child: Text(_endTime ?? 'Select end'),
+                              child: Text(_endTime ?? 'Select end', style: AppTheme.body1),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppTheme.space28),
 
                     // Student selection roster
-                    const Text('Assign Students', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textSecondary)),
-                    const SizedBox(height: 8),
+                    const AppSectionHeader(title: 'ASSIGN STUDENTS', icon: Icons.people_alt_rounded),
+                    const SizedBox(height: AppTheme.space12),
                     studentsAsync.when(
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (err, stack) => Text('Error loading roster: $err'),
+                      loading: () => const Center(child: Padding(
+                        padding: EdgeInsets.all(AppTheme.space16),
+                        child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime)),
+                      )),
+                      error: (err, stack) => Text('Error loading roster: $err', style: AppTheme.caption.copyWith(color: AppTheme.errorRed)),
                       data: (students) {
                         // Filter students by active status and matching sport
                         final sportStudents = students.where((s) => s.isActive && s.sport == _selectedSport).toList();
 
                         if (sportStudents.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24.0),
-                            child: Center(child: Text('No active students in this sport.', style: TextStyle(color: AppTheme.textMuted))),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: AppTheme.space24),
+                            child: Center(
+                              child: Text(
+                                'No active students in this sport.',
+                                style: AppTheme.body2.copyWith(color: AppTheme.textMuted),
+                              ),
+                            ),
                           );
                         }
 
                         return Container(
-                          height: 250,
+                          height: 220,
                           decoration: BoxDecoration(
                             color: AppTheme.darkCard,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(AppTheme.radius16),
                             border: Border.all(color: AppTheme.darkBorder),
                           ),
-                          child: ListView.builder(
-                            itemCount: sportStudents.length,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemBuilder: (context, idx) {
-                              final student = sportStudents[idx];
-                              final isCurrentBatch = student.batchId == widget.batch?.id;
-                              final isSelected = _assignedStudentIds.contains(student.id);
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppTheme.radius16),
+                            child: ListView.separated(
+                              itemCount: sportStudents.length,
+                              padding: const EdgeInsets.symmetric(vertical: AppTheme.space8),
+                              separatorBuilder: (context, index) => const Divider(height: 1, color: AppTheme.darkBorderSubtle),
+                              itemBuilder: (context, idx) {
+                                final student = sportStudents[idx];
+                                final isCurrentBatch = student.batchId == widget.batch?.id;
+                                final isSelected = _assignedStudentIds.contains(student.id);
 
-                              // Text formatting
-                              String assignmentStatus = '';
-                              if (isCurrentBatch) {
-                                assignmentStatus = '(Current)';
-                              } else if (student.batchId != null) {
-                                assignmentStatus = '(In another batch)';
-                              }
+                                // Text formatting
+                                String assignmentStatus = '';
+                                if (isCurrentBatch) {
+                                  assignmentStatus = '(Current)';
+                                } else if (student.batchId != null) {
+                                  assignmentStatus = '(In another batch)';
+                                }
 
-                              return CheckboxListTile(
-                                value: isSelected,
-                                title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                                subtitle: Text(
-                                  '${student.phone ?? 'No Phone'} $assignmentStatus',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isCurrentBatch ? AppTheme.accentLime : AppTheme.textMuted,
+                                return CheckboxListTile(
+                                  value: isSelected,
+                                  title: Text(student.name, style: AppTheme.subtitle2),
+                                  subtitle: Text(
+                                    '${student.phone ?? 'No Phone'} $assignmentStatus',
+                                    style: AppTheme.caption.copyWith(
+                                      color: isCurrentBatch ? AppTheme.accentLime : AppTheme.textMuted,
+                                    ),
                                   ),
-                                ),
-                                activeColor: _selectedSport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal,
-                                checkColor: Colors.black,
-                                onChanged: (val) {
-                                  setState(() {
-                                    if (val == true) {
-                                      _assignedStudentIds.add(student.id);
-                                    } else {
-                                      _assignedStudentIds.remove(student.id);
-                                    }
-                                  });
-                                },
-                              );
-                            },
+                                  activeColor: accentColor,
+                                  checkColor: Colors.black,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      if (val == true) {
+                                        _assignedStudentIds.add(student.id);
+                                      } else {
+                                        _assignedStudentIds.remove(student.id);
+                                      }
+                                    });
+                                  },
+                                );
+                              },
+                            ),
                           ),
                         );
                       },
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppTheme.space32),
 
-                    ElevatedButton(
-                      onPressed: _save,
-                      child: Text(isEdit ? 'Save Changes' : 'Create Batch'),
+                    SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.black,
+                        ),
+                        child: Text(
+                          isEdit ? 'Save Changes' : 'Create Batch',
+                          style: AppTheme.buttonText,
+                        ),
+                      ),
                     ),
                   ],
                 ),

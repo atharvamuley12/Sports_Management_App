@@ -8,6 +8,8 @@ import '../../../shared/models/student.dart';
 import '../repositories/batch_repository.dart';
 import '../repositories/student_repository.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/theme/theme.dart';
+import '../../../shared/widgets/app_widgets.dart';
 
 final batchesListProvider = FutureProvider.autoDispose<List<Batch>>((ref) async {
   final batchRepo = ref.watch(batchRepositoryProvider);
@@ -90,6 +92,19 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       initialDate: _selectedJoinDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppTheme.accentLime,
+              onPrimary: Colors.black,
+              surface: AppTheme.darkCard,
+              onSurface: AppTheme.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -142,7 +157,13 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Student ${isEdit ? 'updated' : 'created'} successfully!')),
+          SnackBar(
+            content: Text(
+              'Student ${isEdit ? 'updated' : 'created'} successfully!',
+              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+            ),
+            backgroundColor: AppTheme.darkCard,
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -163,8 +184,24 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Student'),
-        content: const Text('Are you sure you want to permanently delete this student record? This will also remove their attendance and fee payment logs.'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed, size: 20),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Text('Delete Student', style: AppTheme.heading3),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete this student record? This will also remove their attendance and fee payment logs.',
+          style: AppTheme.body2.copyWith(height: 1.4),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -172,7 +209,10 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -192,7 +232,13 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Student record deleted.')),
+          SnackBar(
+            content: Text(
+              'Student record deleted.',
+              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+            ),
+            backgroundColor: AppTheme.darkCard,
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -212,145 +258,203 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   @override
   Widget build(BuildContext context) {
     final batchesAsync = ref.watch(batchesListProvider);
+    final accentColor = _selectedSport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? 'Edit Student' : 'Add New Student'),
         actions: [
           if (isEdit)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              onPressed: _isLoading ? null : _delete,
+            Padding(
+              padding: const EdgeInsets.only(right: AppTheme.space12),
+              child: AppIconButton(
+                icon: Icons.delete_outline_rounded,
+                color: AppTheme.errorRed,
+                onTap: _isLoading ? null : _delete,
+                tooltip: 'Delete Student',
+              ),
             ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(color: accentColor, strokeWidth: 2.5),
+              ),
+            )
           : Form(
               key: _formKey,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(AppTheme.space20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Photo selector
-
                     Center(
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (ctx) => SafeArea(
-                                child: Wrap(
-                                  children: [
-                                    ListTile(
-                                      leading: const Icon(Icons.camera_alt),
-                                      title: const Text('Take Photo'),
-                                      onTap: () {
-                                        Navigator.of(ctx).pop();
-                                        _pickImage(ImageSource.camera);
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.photo_library),
-                                      title: const Text('Choose from Gallery'),
-                                      onTap: () {
-                                        Navigator.of(ctx).pop();
-                                        _pickImage(ImageSource.gallery);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                          child: Container(
-                            height: 100,
-                            width: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[800],
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.lime, width: 2),
-                            ),
-                            child: _photoFile != null
-                                ? ClipOval(
-                                    child: Image.file(
-                                      File(_photoFile!.path),
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : widget.student?.photoUrl != null
-                                    ? ClipOval(
-                                        child: _buildSavedPhoto(widget.student!.photoUrl!),
-                                      )
-                                    : const Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.add_a_photo_outlined, color: Colors.lime, size: 28),
-                                          SizedBox(height: 4),
-                                          Text('Pick Photo', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                                        ],
+                      child: Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                builder: (ctx) => SafeArea(
+                                  child: Wrap(
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.camera_alt_rounded),
+                                        title: const Text('Take Photo'),
+                                        onTap: () {
+                                          Navigator.of(ctx).pop();
+                                          _pickImage(ImageSource.camera);
+                                        },
                                       ),
+                                      ListTile(
+                                        leading: const Icon(Icons.photo_library_rounded),
+                                        title: const Text('Choose from Gallery'),
+                                        onTap: () {
+                                          Navigator.of(ctx).pop();
+                                          _pickImage(ImageSource.gallery);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 110,
+                              width: 110,
+                              decoration: BoxDecoration(
+                                color: AppTheme.darkCard,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: accentColor.withValues(alpha: 0.05),
+                                    blurRadius: 16,
+                                  ),
+                                ],
+                              ),
+                              child: _photoFile != null
+                                  ? ClipOval(
+                                      child: Image.file(
+                                        File(_photoFile!.path),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : widget.student?.photoUrl != null
+                                      ? ClipOval(
+                                          child: _buildSavedPhoto(widget.student!.photoUrl!),
+                                        )
+                                      : Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.add_a_photo_outlined, color: accentColor, size: 28),
+                                            const SizedBox(height: AppTheme.space4),
+                                            Text(
+                                              'Pick Photo',
+                                              style: AppTheme.caption.copyWith(fontSize: 10),
+                                            ),
+                                          ],
+                                        ),
+                            ),
                           ),
-                        ),
+                          if (_photoFile != null || widget.student?.photoUrl != null)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(AppTheme.space6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.darkBg,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppTheme.darkBorder),
+                                ),
+                                child: Icon(Icons.edit_rounded, size: 14, color: accentColor),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppTheme.space32),
+
+                    // Section: General Details
+                    const AppSectionHeader(title: 'GENERAL DETAILS', icon: Icons.person_outline_rounded),
+                    const SizedBox(height: AppTheme.space12),
 
                     TextFormField(
                       controller: _nameController,
+                      style: AppTheme.body1,
                       decoration: const InputDecoration(labelText: 'Student Name *'),
                       validator: (val) => val == null || val.trim().isEmpty ? 'Please enter name' : null,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
                     TextFormField(
                       controller: _parentNameController,
+                      style: AppTheme.body1,
                       decoration: const InputDecoration(labelText: 'Parent/Guardian Name'),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'Phone Number'),
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixIcon: Icon(Icons.phone_rounded, size: 18),
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    Row(
                       children: [
-                        TextFormField(
-                          controller: _ageController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Age'),
-                          validator: (val) {
-                            if (val != null && val.isNotEmpty && int.tryParse(val) == null) {
-                              return 'Invalid age';
-                            }
-                            return null;
-                          },
+                        Expanded(
+                          child: TextFormField(
+                            controller: _ageController,
+                            keyboardType: TextInputType.number,
+                            style: AppTheme.body1,
+                            decoration: const InputDecoration(labelText: 'Age'),
+                            validator: (val) {
+                              if (val != null && val.isNotEmpty && int.tryParse(val) == null) {
+                                return 'Invalid age';
+                              }
+                              return null;
+                            },
+                          ),
                         ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _feeController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Monthly Fee (₹) *'),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) return 'Enter monthly fee';
-                            if (double.tryParse(val) == null) return 'Invalid amount';
-                            return null;
-                          },
+                        const SizedBox(width: AppTheme.space16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _feeController,
+                            keyboardType: TextInputType.number,
+                            style: AppTheme.body1,
+                            decoration: const InputDecoration(
+                              labelText: 'Monthly Fee (₹) *',
+                              prefixIcon: Icon(Icons.currency_rupee, size: 16),
+                            ),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Enter monthly fee';
+                              if (double.tryParse(val) == null) return 'Invalid amount';
+                              return null;
+                            },
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space32),
+
+                    // Section: Academy Configuration
+                    const AppSectionHeader(title: 'ACADEMY CONFIGURATION', icon: Icons.sports_outlined),
+                    const SizedBox(height: AppTheme.space12),
 
                     // Sport Selector
                     DropdownButtonFormField<String>(
                       value: _selectedSport,
+                      style: AppTheme.body1,
                       decoration: const InputDecoration(labelText: 'Sport *'),
                       items: const [
                         DropdownMenuItem(value: 'cricket', child: Text('Cricket')),
@@ -364,12 +468,15 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                         }
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
                     // Batch Selector
                     batchesAsync.when(
-                      loading: () => const Center(child: LinearProgressIndicator()),
-                      error: (err, stack) => Text('Error loading batches: $err'),
+                      loading: () => const Center(child: Padding(
+                        padding: EdgeInsets.all(AppTheme.space16),
+                        child: SizedBox(height: 2, child: LinearProgressIndicator()),
+                      )),
+                      error: (err, stack) => Text('Error loading batches: $err', style: AppTheme.caption.copyWith(color: AppTheme.errorRed)),
                       data: (batches) {
                         // Filter batches for the selected sport
                         final filteredBatches = batches.where((b) => b.sport == _selectedSport).toList();
@@ -381,6 +488,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
                         return DropdownButtonFormField<String>(
                           value: _selectedBatchId,
+                          style: AppTheme.body1,
                           decoration: const InputDecoration(labelText: 'Assigned Batch'),
                           items: [
                             const DropdownMenuItem<String>(value: null, child: Text('No Batch')),
@@ -396,7 +504,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
                     // Join Date Selector
                     InkWell(
@@ -405,16 +513,20 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                       child: InputDecorator(
                         decoration: const InputDecoration(
                           labelText: 'Join Date',
-                          suffixIcon: Icon(Icons.calendar_today_outlined),
+                          suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
                         ),
-                        child: Text(DateFormat('dd MMMM yyyy').format(_selectedJoinDate)),
+                        child: Text(
+                          DateFormat('dd MMMM yyyy').format(_selectedJoinDate),
+                          style: AppTheme.body1,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppTheme.space16),
 
                     // Status Dropdown
                     DropdownButtonFormField<String>(
                       value: _selectedStatus,
+                      style: AppTheme.body1,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
                         DropdownMenuItem(value: 'active', child: Text('Active')),
@@ -428,11 +540,21 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                         }
                       },
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppTheme.space40),
 
-                    ElevatedButton(
-                      onPressed: _save,
-                      child: Text(isEdit ? 'Save Changes' : 'Create Student'),
+                    SizedBox(
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.black,
+                        ),
+                        child: Text(
+                          isEdit ? 'Save Changes' : 'Create Student',
+                          style: AppTheme.buttonText,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -447,8 +569,14 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         final bytesAsync = ref.watch(studentPhotoBytesProvider(path));
         return bytesAsync.when(
           data: (bytes) => Image.memory(bytes, fit: BoxFit.cover),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => const Icon(Icons.error, color: Colors.red),
+          loading: () => const Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+            ),
+          ),
+          error: (err, stack) => const Icon(Icons.error_outline_rounded, color: AppTheme.errorRed),
         );
       },
     );

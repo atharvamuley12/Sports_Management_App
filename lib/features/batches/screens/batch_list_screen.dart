@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/models/batch.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/repositories/profile_repository.dart';
 import '../../students/repositories/batch_repository.dart';
 import '../../students/repositories/student_repository.dart';
@@ -43,67 +44,54 @@ class BatchListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Batches'),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              gradient: AppTheme.limeGradient,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.add_rounded, size: 20, color: Colors.black),
-              onPressed: () async {
-                await context.push('/batches/new');
-                ref.invalidate(batchesListProvider);
-                ref.invalidate(batchStudentCountsProvider);
-              },
-              tooltip: 'Create Batch',
+          Padding(
+            padding: const EdgeInsets.only(right: AppTheme.space12),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.limeGradient,
+                borderRadius: BorderRadius.circular(AppTheme.radius12),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.add_rounded, size: 20, color: Colors.black),
+                onPressed: () async {
+                  await context.push('/batches/new');
+                  ref.invalidate(batchesListProvider);
+                  ref.invalidate(batchStudentCountsProvider);
+                },
+                tooltip: 'Create Batch',
+              ),
             ),
           ),
         ],
       ),
       body: RefreshIndicator(
         color: AppTheme.accentLime,
+        backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         onRefresh: () async {
           ref.invalidate(batchesListProvider);
           ref.invalidate(batchCoachesMapProvider);
           ref.invalidate(batchStudentCountsProvider);
         },
         child: batchesAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.accentLime, strokeWidth: 2.5)),
-          error: (err, stack) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline_rounded, size: 40, color: AppTheme.errorRed),
-                  const SizedBox(height: 12),
-                  SelectableText(
-                    'Error loading batches: $err',
-                    style: const TextStyle(color: AppTheme.errorRed, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
+          loading: () => const AppLoadingState(itemCount: 4, itemHeight: 140),
+          error: (err, stack) => AppErrorState(
+            message: err.toString(),
+            onRetry: () {
+              ref.invalidate(batchesListProvider);
+              ref.invalidate(batchCoachesMapProvider);
+              ref.invalidate(batchStudentCountsProvider);
+            },
           ),
           data: (batches) {
             if (batches.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  const SizedBox(height: 120),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.layers_clear_outlined, size: 56, color: AppTheme.textMuted),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'No batches created yet',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
-                        ),
-                      ],
-                    ),
+                children: const [
+                  SizedBox(height: 80),
+                  AppEmptyState(
+                    icon: Icons.layers_clear_outlined,
+                    title: 'No batches created yet',
+                    subtitle: 'Create a new batch using the "+" button on the top right.',
                   ),
                 ],
               );
@@ -115,118 +103,123 @@ class BatchListScreen extends ConsumerWidget {
             return ListView.builder(
               itemCount: batches.length,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(AppTheme.space16),
               itemBuilder: (context, index) {
                 final batch = batches[index];
                 final coachName = batch.coachId != null ? (coaches[batch.coachId] ?? 'Unknown Coach') : 'Unassigned';
                 final studentCount = counts[batch.id] ?? 0;
                 final isFull = studentCount >= batch.capacity;
                 final sportColor = batch.sport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
+                final gradient = batch.sport == 'cricket' ? AppTheme.limeGradient : AppTheme.tealGradient;
+                final capacityRatio = batch.capacity > 0 ? studentCount / batch.capacity : 0.0;
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.darkCard,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: AppTheme.darkBorder),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      mouseCursor: SystemMouseCursors.click,
-                      onTap: () async {
-                        await context.push('/batches/edit', extra: batch);
-                        ref.invalidate(batchesListProvider);
-                        ref.invalidate(batchStudentCountsProvider);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space14),
+                  child: AppCard(
+                    padding: const EdgeInsets.all(AppTheme.space16),
+                    onTap: () async {
+                      await context.push('/batches/edit', extra: batch);
+                      ref.invalidate(batchesListProvider);
+                      ref.invalidate(batchStudentCountsProvider);
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            AppGradientIcon(
+                              icon: batch.sport == 'cricket' ? Icons.sports_cricket : Icons.sports_soccer,
+                              gradient: gradient,
+                              size: 18,
+                              padding: AppTheme.space8,
+                            ),
+                            const SizedBox(width: AppTheme.space12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    batch.name,
+                                    style: AppTheme.subtitle1,
+                                  ),
+                                  const SizedBox(height: AppTheme.space2),
+                                  Text(
+                                    'Coach: $coachName',
+                                    style: AppTheme.caption,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
+                          ],
+                        ),
+                        const Divider(height: AppTheme.space24),
+                        Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: sportColor.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Days', style: AppTheme.caption),
+                                  const SizedBox(height: AppTheme.space2),
+                                  Text(
+                                    batch.days.isNotEmpty ? batch.days.join(', ') : 'None selected',
+                                    style: AppTheme.subtitle2,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  child: Icon(
-                                    batch.sport == 'cricket' ? Icons.sports_cricket : Icons.sports_soccer,
-                                    color: sportColor,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      SelectableText(
-                                        batch.name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Coach: $coachName',
-                                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
-                              ],
+                                ],
+                              ),
                             ),
-                            const Divider(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            const SizedBox(width: AppTheme.space12),
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Timings', style: AppTheme.caption),
+                                  const SizedBox(height: AppTheme.space2),
+                                  Text(
+                                    batch.startTime != null && batch.endTime != null
+                                        ? '${batch.startTime} - ${batch.endTime}'
+                                        : 'N/A',
+                                    style: AppTheme.subtitle2,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: AppTheme.space12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Days', style: TextStyle(color: AppTheme.textMuted, fontSize: 10)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      batch.days.isNotEmpty ? batch.days.join(', ') : 'None selected',
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Timings', style: TextStyle(color: AppTheme.textMuted, fontSize: 10)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      batch.startTime != null && batch.endTime != null
-                                          ? '${batch.startTime} - ${batch.endTime}'
-                                          : 'N/A',
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    const Text('Enrollment', style: TextStyle(color: AppTheme.textMuted, fontSize: 10)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '$studentCount / ${batch.capacity}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                        color: isFull ? AppTheme.errorRed : AppTheme.successGreen,
-                                      ),
-                                    ),
-                                  ],
+                                Text('Enrollment', style: AppTheme.caption),
+                                const SizedBox(height: AppTheme.space2),
+                                Text(
+                                  '$studentCount / ${batch.capacity}',
+                                  style: AppTheme.subtitle2.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: isFull ? AppTheme.errorRed : AppTheme.successGreen,
+                                  ),
                                 ),
                               ],
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: AppTheme.space12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppTheme.radius6),
+                          child: LinearProgressIndicator(
+                            value: capacityRatio.clamp(0.0, 1.0),
+                            minHeight: 4,
+                            backgroundColor: AppTheme.darkBorder,
+                            valueColor: AlwaysStoppedAnimation(isFull ? AppTheme.errorRed : sportColor),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );

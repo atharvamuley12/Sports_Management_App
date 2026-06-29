@@ -8,6 +8,7 @@ import '../../../shared/models/student.dart';
 import '../../../shared/models/batch.dart';
 import '../../../shared/models/payment.dart';
 import '../../../shared/models/attendance.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/student_repository.dart';
 import '../repositories/batch_repository.dart';
@@ -59,61 +60,77 @@ class StudentProfileScreen extends ConsumerWidget {
         title: const Text('Student Profile'),
         actions: [
           if (profile.isAdmin || profile.isCoach)
-            TextButton.icon(
-              icon: Icon(Icons.edit_outlined, size: 18, color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentLime),
-              label: Text(
-                isRestrictedCoach ? 'Edit (Restricted)' : 'Edit',
-                style: TextStyle(color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentLime),
+            Padding(
+              padding: const EdgeInsets.only(right: AppTheme.space12),
+              child: TextButton.icon(
+                icon: Icon(
+                  Icons.edit_outlined, 
+                  size: 18, 
+                  color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentLime,
+                ),
+                label: Text(
+                  isRestrictedCoach ? 'Edit (Restricted)' : 'Edit',
+                  style: TextStyle(color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentLime),
+                ),
+                onPressed: isRestrictedCoach
+                    ? null
+                    : () async {
+                        await context.push('/students/edit', extra: student);
+                        // Invalidate data
+                        ref.invalidate(studentBatchProvider(student.batchId));
+                        ref.invalidate(studentPaymentsHistoryProvider(student.id));
+                        ref.invalidate(studentAttendanceLogsProvider(student.id));
+                      },
               ),
-              onPressed: isRestrictedCoach
-                  ? null
-                  : () async {
-                      await context.push('/students/edit', extra: student);
-                      // Invalidate data
-                      ref.invalidate(studentBatchProvider(student.batchId));
-                      ref.invalidate(studentPaymentsHistoryProvider(student.id));
-                      ref.invalidate(studentAttendanceLogsProvider(student.id));
-                    },
             ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppTheme.space16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Header card
             _buildProfileHeader(ref, sportColor),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.space16),
 
             // Parent contact information
             _buildContactInfo(context),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.space16),
 
             // Batch information
             batchAsync.when(
-              loading: () => const Center(child: LinearProgressIndicator()),
-              error: (err, stack) => Text('Error loading batch: $err'),
+              loading: () => const Center(child: Padding(
+                padding: EdgeInsets.all(AppTheme.space16),
+                child: SizedBox(height: 2, child: LinearProgressIndicator()),
+              )),
+              error: (err, stack) => AppErrorState(message: 'Error loading batch: $err'),
               data: (batch) => _buildBatchInfo(batch, sportColor),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.space16),
 
             // Attendance rate log details
             attendanceAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Text('Error loading attendance: $err'),
+              loading: () => const Center(child: Padding(
+                padding: EdgeInsets.all(AppTheme.space16),
+                child: SizedBox(height: 2, child: LinearProgressIndicator()),
+              )),
+              error: (err, stack) => AppErrorState(message: 'Error loading attendance: $err'),
               data: (logs) => _buildAttendanceSummary(logs),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.space16),
 
             // Payments registry (For admins only)
             if (profile.isAdmin) ...[
               paymentsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Text('Error loading payments: $err'),
+                loading: () => const Center(child: Padding(
+                  padding: EdgeInsets.all(AppTheme.space16),
+                  child: SizedBox(height: 2, child: LinearProgressIndicator()),
+                )),
+                error: (err, stack) => AppErrorState(message: 'Error loading payments: $err'),
                 data: (payments) => _buildPaymentsRegistry(payments, currencyFormat),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppTheme.space16),
             ],
           ],
         ),
@@ -122,45 +139,42 @@ class StudentProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildProfileHeader(WidgetRef ref, Color sportColor) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.darkBorder),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppTheme.space20),
       child: Row(
         children: [
           _buildPhoto(ref, sportColor),
-          const SizedBox(width: 20),
+          const SizedBox(width: AppTheme.space20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SelectableText(
                   student.name,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: AppTheme.heading2,
                 ),
-                const SizedBox(height: 6),
-                Row(
+                const SizedBox(height: AppTheme.space6),
+                Wrap(
+                  spacing: AppTheme.space6,
+                  runSpacing: AppTheme.space6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    if (student.age != null) ...[
+                    if (student.age != null)
                       _infoPill('Age ${student.age}', AppTheme.textSecondary),
-                      const SizedBox(width: 8),
-                    ],
-                    _infoPill(student.sport.toUpperCase(), sportColor, isBold: true),
-                    const SizedBox(width: 8),
-                    _infoPill(
-                      student.status.toUpperCase(),
-                      student.isActive ? AppTheme.successGreen : AppTheme.errorRed,
-                      isBold: true,
-                    ),
+                    AppStatusChip.sport(student.sport),
+                    student.isActive ? AppStatusChip.active() : AppStatusChip.inactive(),
                   ],
                 ),
-                const SizedBox(height: 8),
-                SelectableText(
-                  'Joined: ${DateFormat('dd MMM yyyy').format(student.joinDate)}',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                const SizedBox(height: AppTheme.space8),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textMuted),
+                    const SizedBox(width: AppTheme.space4),
+                    SelectableText(
+                      'Joined: ${DateFormat('dd MMM yyyy').format(student.joinDate)}',
+                      style: AppTheme.caption,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -176,9 +190,9 @@ class StudentProfileScreen extends ConsumerWidget {
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: fallbackColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: fallbackColor.withValues(alpha: 0.3)),
+          color: fallbackColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppTheme.radius20),
+          border: Border.all(color: fallbackColor.withValues(alpha: 0.15)),
         ),
         child: Icon(Icons.person_rounded, color: fallbackColor, size: 40),
       );
@@ -190,9 +204,9 @@ class StudentProfileScreen extends ConsumerWidget {
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppTheme.radius20),
           image: DecorationImage(image: MemoryImage(bytes), fit: BoxFit.cover),
-          border: Border.all(color: fallbackColor.withValues(alpha: 0.3)),
+          border: Border.all(color: AppTheme.darkBorder),
         ),
       ),
       loading: () => Container(
@@ -200,16 +214,20 @@ class StudentProfileScreen extends ConsumerWidget {
         height: 80,
         decoration: BoxDecoration(
           color: AppTheme.darkSurface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppTheme.radius20),
         ),
-        child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime)),
+        child: const Center(child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+        )),
       ),
       error: (err, stack) => Container(
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: AppTheme.errorRed.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
+          color: AppTheme.errorRed.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppTheme.radius20),
         ),
         child: const Icon(Icons.error_outline, color: AppTheme.errorRed, size: 30),
       ),
@@ -218,16 +236,17 @@ class StudentProfileScreen extends ConsumerWidget {
 
   Widget _infoPill(String text, Color color, {bool isBold = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppTheme.radius6),
+        border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
       ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        style: AppTheme.overline.copyWith(
+          fontSize: 9,
+          fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
           color: color,
         ),
       ),
@@ -235,50 +254,48 @@ class StudentProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildContactInfo(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.darkBorder),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppTheme.space16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Parent / Guardian Information',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+          const AppSectionHeader(
+            title: 'PARENT / GUARDIAN INFORMATION',
+            icon: Icons.family_restroom_rounded,
           ),
-          const Divider(height: 20),
+          const SizedBox(height: AppTheme.space12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Parent Name', style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-                  const SizedBox(height: 2),
+                  Text('Parent Name', style: AppTheme.caption),
+                  const SizedBox(height: AppTheme.space2),
                   SelectableText(
                     student.parentName ?? 'Not specified',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: AppTheme.subtitle1,
                   ),
                 ],
               ),
-              if (student.phone != null)
+              if (student.phone != null && student.phone!.isNotEmpty)
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.call, color: AppTheme.accentLime),
-                      onPressed: () {
+                    AppIconButton(
+                      icon: Icons.call_rounded,
+                      color: AppTheme.accentLime,
+                      onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Simulated call to ${student.phone}')),
                         );
                       },
                       tooltip: 'Call parent',
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.message, color: AppTheme.accentTeal),
-                      onPressed: () {
+                    const SizedBox(width: AppTheme.space8),
+                    AppIconButton(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      color: AppTheme.accentTeal,
+                      onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Simulated SMS to ${student.phone}')),
                         );
@@ -289,13 +306,13 @@ class StudentProfileScreen extends ConsumerWidget {
                 ),
             ],
           ),
-          if (student.phone != null) ...[
-            const SizedBox(height: 12),
-            const Text('Contact Phone', style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-            const SizedBox(height: 2),
+          if (student.phone != null && student.phone!.isNotEmpty) ...[
+            const SizedBox(height: AppTheme.space12),
+            Text('Contact Phone', style: AppTheme.caption),
+            const SizedBox(height: AppTheme.space2),
             SelectableText(
               student.phone!,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: AppTheme.subtitle1,
             ),
           ],
         ],
@@ -304,21 +321,16 @@ class StudentProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildBatchInfo(Batch? batch, Color sportColor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.darkBorder),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppTheme.space16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Batch Details',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+          const AppSectionHeader(
+            title: 'BATCH DETAILS',
+            icon: Icons.badge_rounded,
           ),
-          const Divider(height: 20),
+          const SizedBox(height: AppTheme.space12),
           if (batch != null) ...[
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -326,59 +338,59 @@ class StudentProfileScreen extends ConsumerWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Batch Name', style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Text(batch.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text('Batch Name', style: AppTheme.caption),
+                    const SizedBox(height: AppTheme.space2),
+                    Text(batch.name, style: AppTheme.subtitle1),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: sportColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: sportColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Text(
-                    batch.sport.toUpperCase(),
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: sportColor),
-                  ),
-                ),
+                AppStatusChip.sport(batch.sport),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space12),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Schedule Days', style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Text(
-                      batch.days.isNotEmpty ? batch.days.join(', ') : 'None',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Schedule Days', style: AppTheme.caption),
+                      const SizedBox(height: AppTheme.space2),
+                      Text(
+                        batch.days.isNotEmpty ? batch.days.join(', ') : 'None',
+                        style: AppTheme.subtitle2,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('Timings', style: TextStyle(color: AppTheme.textMuted, fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Text(
-                      batch.startTime != null && batch.endTime != null
-                          ? '${batch.startTime} - ${batch.endTime}'
-                          : 'N/A',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ],
+                const SizedBox(width: AppTheme.space12),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Timings', style: AppTheme.caption),
+                      const SizedBox(height: AppTheme.space2),
+                      Text(
+                        batch.startTime != null && batch.endTime != null
+                            ? '${batch.startTime} - ${batch.endTime}'
+                            : 'N/A',
+                        style: AppTheme.subtitle2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ] else
             const Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: EdgeInsets.symmetric(vertical: AppTheme.space8),
                 child: Text('Student not assigned to any batch.', style: TextStyle(color: AppTheme.textMuted)),
               ),
             ),
@@ -391,87 +403,86 @@ class StudentProfileScreen extends ConsumerWidget {
     final presentCount = logs.where((l) => l.status == 'present').length;
     final totalCount = logs.length;
     final double rate = totalCount > 0 ? presentCount / totalCount : 0.0;
+    final Color rateColor = rate >= 0.75
+        ? AppTheme.successGreen
+        : (rate >= 0.5 ? AppTheme.warningAmber : AppTheme.errorRed);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.darkBorder),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppTheme.space16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Attendance Logs',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+              const AppSectionHeader(
+                title: 'ATTENDANCE LOGS',
+                icon: Icons.playlist_add_check_rounded,
               ),
               if (totalCount > 0)
-                Text(
-                  'Rate: ${(rate * 100).toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: rate >= 0.75
-                        ? AppTheme.successGreen
-                        : (rate >= 0.5 ? AppTheme.warningAmber : AppTheme.errorRed),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space4),
+                  decoration: BoxDecoration(
+                    color: rateColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radius8),
+                  ),
+                  child: Text(
+                    'Rate: ${(rate * 100).toStringAsFixed(1)}%',
+                    style: AppTheme.labelSmall.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: rateColor,
+                    ),
                   ),
                 ),
             ],
           ),
-          const Divider(height: 20),
+          const SizedBox(height: AppTheme.space12),
           if (totalCount > 0) ...[
             Row(
               children: [
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppTheme.radius6),
                     child: LinearProgressIndicator(
                       value: rate,
-                      minHeight: 8,
-                      color: rate >= 0.75
-                          ? AppTheme.successGreen
-                          : (rate >= 0.5 ? AppTheme.warningAmber : AppTheme.errorRed),
+                      minHeight: 6,
+                      color: rateColor,
                       backgroundColor: AppTheme.darkBorder,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Text('$presentCount / $totalCount present', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                const SizedBox(width: AppTheme.space12),
+                Text('$presentCount / $totalCount present', style: AppTheme.caption),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.space16),
             SizedBox(
-              height: 120,
+              height: 140,
               child: ListView.separated(
                 itemCount: logs.length > 5 ? 5 : logs.length, // Show recent 5 logs
-                separatorBuilder: (context, index) => const Divider(height: 8, color: AppTheme.darkBorder),
+                separatorBuilder: (context, index) => const Divider(height: AppTheme.space8),
                 itemBuilder: (context, index) {
                   final log = logs[index];
                   final isPresent = log.status == 'present';
 
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(DateFormat('dd MMMM yyyy').format(log.date), style: const TextStyle(fontSize: 13)),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: (isPresent ? AppTheme.successGreen : AppTheme.errorRed).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.event_rounded, size: 14, color: AppTheme.textMuted),
+                            const SizedBox(width: AppTheme.space6),
+                            Text(
+                              DateFormat('dd MMMM yyyy').format(log.date), 
+                              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          log.status.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isPresent ? AppTheme.successGreen : AppTheme.errorRed,
-                          ),
-                        ),
-                      ),
-                    ],
+                        isPresent ? AppStatusChip.present() : AppStatusChip.absent(),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -479,7 +490,7 @@ class StudentProfileScreen extends ConsumerWidget {
           ] else
             const Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: EdgeInsets.symmetric(vertical: AppTheme.space8),
                 child: Text('No attendance records logged.', style: TextStyle(color: AppTheme.textMuted)),
               ),
             ),
@@ -489,46 +500,56 @@ class StudentProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildPaymentsRegistry(List<Payment> payments, NumberFormat currencyFormat) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.darkBorder),
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppTheme.space16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Payment Registry',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+          const AppSectionHeader(
+            title: 'PAYMENT REGISTRY',
+            icon: Icons.payments_rounded,
           ),
-          const Divider(height: 20),
+          const SizedBox(height: AppTheme.space12),
           if (payments.isNotEmpty)
             SizedBox(
-              height: 150,
+              height: 160,
               child: ListView.separated(
                 itemCount: payments.length,
-                separatorBuilder: (context, index) => const Divider(height: 8, color: AppTheme.darkBorder),
+                separatorBuilder: (context, index) => const Divider(height: AppTheme.space8),
                 itemBuilder: (context, index) {
                   final p = payments[index];
                   final monthName = DateFormat('MMMM').format(DateTime(2020, p.month));
 
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${currencyFormat.format(p.amount)} - ${p.mode.toUpperCase()}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                          Text('For $monthName ${p.year}', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                        ],
-                      ),
-                      Text(DateFormat('dd MMM yyyy').format(p.paymentDate), style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                    ],
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${currencyFormat.format(p.amount)} - ${p.mode.toUpperCase()}',
+                              style: AppTheme.subtitle2,
+                            ),
+                            Text(
+                              'For $monthName ${p.year}', 
+                              style: AppTheme.caption,
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textMuted),
+                            const SizedBox(width: AppTheme.space4),
+                            Text(
+                              DateFormat('dd MMM yyyy').format(p.paymentDate), 
+                              style: AppTheme.caption,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -536,7 +557,7 @@ class StudentProfileScreen extends ConsumerWidget {
           else
             const Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+                padding: EdgeInsets.symmetric(vertical: AppTheme.space8),
                 child: Text('No payments recorded yet.', style: TextStyle(color: AppTheme.textMuted)),
               ),
             ),

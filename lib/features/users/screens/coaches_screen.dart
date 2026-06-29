@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/models/profile.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/repositories/profile_repository.dart';
 import '../../../core/utils/error_handler.dart';
 
@@ -30,27 +31,33 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddCoachDialog,
-        child: const Icon(Icons.add),
+        backgroundColor: AppTheme.accentLime,
+        foregroundColor: Colors.black,
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
       body: RefreshIndicator(
+        color: AppTheme.accentLime,
+        backgroundColor: AppTheme.darkCard,
         onRefresh: () async {
           ref.invalidate(coachesListProvider);
         },
         child: coachesAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Error loading coaches: $err'),
-            ),
+          loading: () => const AppLoadingState(itemCount: 4, itemHeight: 90),
+          error: (err, stack) => AppErrorState(
+            message: err.toString(),
+            onRetry: () => ref.invalidate(coachesListProvider),
           ),
           data: (coaches) {
             if (coaches.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
-                  SizedBox(height: 120),
-                  Center(child: Text('No coaches added yet.')),
+                  SizedBox(height: 80),
+                  AppEmptyState(
+                    icon: Icons.supervised_user_circle_rounded,
+                    title: 'No coaches added yet',
+                    subtitle: 'Use the floating action button below to create a new coach account.',
+                  ),
                 ],
               );
             }
@@ -58,78 +65,133 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
             return ListView.builder(
               itemCount: coaches.length,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(AppTheme.space16),
               itemBuilder: (context, index) {
                 final coach = coaches[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space12),
+                  child: AppCard(
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space12),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          backgroundColor: AppTheme.accentLime.withValues(alpha: 0.15),
-                          child: const Icon(Icons.sports_rounded, color: AppTheme.accentLime),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentLime.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(AppTheme.radius12),
+                            border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.15)),
+                          ),
+                          child: const Icon(Icons.sports_rounded, color: AppTheme.accentLime, size: 20),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppTheme.space14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SelectableText(
-                                coach.fullName,
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                              ),
-                              if (coach.phone != null)
-                                SelectableText(
-                                  coach.phone!,
-                                  style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                                ),
                               Text(
-                                coach.isActive ? 'Active Staff' : 'Deactivated',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: coach.isActive ? AppTheme.successGreen : AppTheme.errorRed,
-                                  fontWeight: FontWeight.w700,
+                                coach.fullName,
+                                style: AppTheme.subtitle1,
+                              ),
+                              if (coach.phone != null && coach.phone!.isNotEmpty) ...[
+                                const SizedBox(height: AppTheme.space2),
+                                Text(
+                                  coach.phone!,
+                                  style: AppTheme.caption,
                                 ),
+                              ],
+                              const SizedBox(height: AppTheme.space4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: (coach.isActive ? AppTheme.successGreen : AppTheme.errorRed).withValues(alpha: 0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    coach.isActive ? 'Active Staff' : 'Suspended',
+                                    style: AppTheme.overline.copyWith(
+                                      fontSize: 9,
+                                      color: coach.isActive ? AppTheme.successGreen : AppTheme.errorRed,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                         ),
-                        // Edit Coach Details
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 20),
-                          onPressed: () => _showEditCoachDialog(coach),
-                          tooltip: 'Edit Details',
-                          color: AppTheme.textSecondary,
-                        ),
-                        // Reset Password
-                        IconButton(
-                          icon: const Icon(Icons.lock_reset_rounded, size: 20),
-                          onPressed: () => _showResetPasswordDialog(coach),
-                          tooltip: 'Reset Password',
-                          color: AppTheme.textSecondary,
-                        ),
-                        // Active switch
-                        Switch(
-                          value: coach.isActive,
-                          activeColor: AppTheme.accentLime,
-                          onChanged: (val) async {
-                            try {
-                              final repo = ref.read(profileRepositoryProvider);
-                              await repo.toggleCoachActive(coach.id, val);
-                              ref.invalidate(coachesListProvider);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Coach status updated!')),
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ErrorHandler.showError(context, 'Failed to update', e);
-                              }
-                            }
-                          },
+                        // Actions Group (Switch + PopupMenuButton)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Switch(
+                              value: coach.isActive,
+                              activeColor: AppTheme.accentLime,
+                              onChanged: (val) async {
+                                try {
+                                  final repo = ref.read(profileRepositoryProvider);
+                                  await repo.toggleCoachActive(coach.id, val);
+                                  ref.invalidate(coachesListProvider);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Coach status updated!',
+                                          style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                                        ),
+                                        backgroundColor: AppTheme.darkCard,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ErrorHandler.showError(context, 'Failed to update', e);
+                                  }
+                                }
+                              },
+                            ),
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: Theme.of(context).textTheme.bodyMedium?.color ?? AppTheme.textSecondary,
+                              ),
+                              surfaceTintColor: Colors.transparent,
+                              color: Theme.of(context).cardTheme.color ?? AppTheme.darkCard,
+                              onSelected: (val) {
+                                if (val == 'edit') {
+                                  _showEditCoachDialog(coach);
+                                } else if (val == 'reset') {
+                                  _showResetPasswordDialog(coach);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit_outlined, size: 16),
+                                      SizedBox(width: 8),
+                                      Text('Edit Details'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'reset',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.lock_reset_rounded, size: 16),
+                                      SizedBox(width: 8),
+                                      Text('Reset Password'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -174,7 +236,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               if (mounted) {
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coach profile updated successfully!')),
+                  SnackBar(
+                    content: Text(
+                      'Coach profile updated successfully!',
+                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                    ),
+                    backgroundColor: AppTheme.darkCard,
+                  ),
                 );
               }
             } catch (e) {
@@ -189,41 +257,65 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
           }
 
           return AlertDialog(
-            title: const Text('Edit Coach Details'),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.space8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radius10),
+                  ),
+                  child: const Icon(Icons.edit_rounded, color: AppTheme.accentLime, size: 20),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Text('Edit Details', style: AppTheme.heading3),
+              ],
+            ),
             content: _isSaving
                 ? const SizedBox(
                     height: 100,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                      ),
+                    ),
                   )
                 : Form(
                     key: formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextFormField(
-                          controller: nameController,
-                          decoration: const InputDecoration(labelText: 'Full Name *'),
-                          validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(labelText: 'Email Address *'),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) return 'Enter email';
-                            if (!val.contains('@')) return 'Enter a valid email';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(labelText: 'Phone Number'),
-                        ),
-                      ],
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextFormField(
+                            controller: nameController,
+                            style: AppTheme.body1,
+                            decoration: const InputDecoration(labelText: 'Full Name *'),
+                            validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
+                          ),
+                          const SizedBox(height: AppTheme.space12),
+                          TextFormField(
+                            controller: emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            style: AppTheme.body1,
+                            decoration: const InputDecoration(labelText: 'Email Address *'),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Enter email';
+                              if (!val.contains('@')) return 'Enter a valid email';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppTheme.space12),
+                          TextFormField(
+                            controller: phoneController,
+                            keyboardType: TextInputType.phone,
+                            style: AppTheme.body1,
+                            decoration: const InputDecoration(labelText: 'Phone Number'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
             actions: [
@@ -233,6 +325,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               ),
               ElevatedButton(
                 onPressed: _isSaving ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: Colors.black,
+                ),
                 child: const Text('Save Details'),
               ),
             ],
@@ -265,7 +361,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               if (mounted) {
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Password reset successfully for ${coach.fullName}!')),
+                  SnackBar(
+                    content: Text(
+                      'Password reset successfully for ${coach.fullName}!',
+                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                    ),
+                    backgroundColor: AppTheme.darkCard,
+                  ),
                 );
               }
             } catch (e) {
@@ -280,11 +382,36 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
           }
 
           return AlertDialog(
-            title: Text('Reset Password for ${coach.fullName}'),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.space8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radius10),
+                  ),
+                  child: const Icon(Icons.lock_reset_rounded, color: AppTheme.accentLime, size: 20),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Expanded(
+                  child: Text(
+                    'Reset Password',
+                    style: AppTheme.heading3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
             content: _isSaving
                 ? const SizedBox(
                     height: 100,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                      ),
+                    ),
                   )
                 : Form(
                     key: formKey,
@@ -295,6 +422,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                         TextFormField(
                           controller: passwordController,
                           obscureText: true,
+                          style: AppTheme.body1,
                           decoration: const InputDecoration(
                             labelText: 'New Password *',
                             hintText: 'Must be at least 6 characters',
@@ -315,6 +443,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               ),
               ElevatedButton(
                 onPressed: _isSaving ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: Colors.black,
+                ),
                 child: const Text('Reset Password'),
               ),
             ],
@@ -357,7 +489,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               if (mounted) {
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coach user created successfully!')),
+                  SnackBar(
+                    content: Text(
+                      'Coach user created successfully!',
+                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                    ),
+                    backgroundColor: AppTheme.darkCard,
+                  ),
                 );
               }
             } catch (e) {
@@ -372,11 +510,30 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
           }
 
           return AlertDialog(
-            title: const Text('Add Coach Account'),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.space8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radius10),
+                  ),
+                  child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.accentLime, size: 20),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Text('Add Coach Account', style: AppTheme.heading3),
+              ],
+            ),
             content: _isSaving
                 ? const SizedBox(
                     height: 100,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                      ),
+                    ),
                   )
                 : Form(
                     key: formKey,
@@ -387,13 +544,15 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                         children: [
                           TextFormField(
                             controller: nameController,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Full Name *'),
                             validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           TextFormField(
                             controller: emailController,
                             keyboardType: TextInputType.emailAddress,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Email Address *'),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Enter email';
@@ -401,16 +560,18 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           TextFormField(
                             controller: phoneController,
                             keyboardType: TextInputType.phone,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Phone Number'),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           TextFormField(
                             controller: passwordController,
                             obscureText: true,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(
                               labelText: 'Temporary Password *',
                               hintText: 'Must be at least 6 characters',
@@ -432,6 +593,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               ),
               ElevatedButton(
                 onPressed: _isSaving ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: Colors.black,
+                ),
                 child: const Text('Create Coach'),
               ),
             ],
