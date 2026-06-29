@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/supabase/supabase_client.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 
 class MonthlyFinancials {
@@ -220,12 +221,9 @@ class ReportsScreen extends ConsumerWidget {
           title: const Text('Reports & Analytics'),
           bottom: const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.analytics_rounded), text: 'Financials'),
-              Tab(icon: Icon(Icons.rule_rounded), text: 'Attendance'),
+              Tab(icon: Icon(Icons.analytics_rounded, size: 20), text: 'Financials'),
+              Tab(icon: Icon(Icons.rule_rounded, size: 20), text: 'Attendance'),
             ],
-            indicatorColor: AppTheme.accentLime,
-            labelColor: AppTheme.accentLime,
-            unselectedLabelColor: AppTheme.textSecondary,
           ),
         ),
         body: const TabBarView(
@@ -249,81 +247,84 @@ class _FinancialReportsView extends ConsumerWidget {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     return RefreshIndicator(
+      color: AppTheme.accentLime,
+      backgroundColor: AppTheme.darkCard,
       onRefresh: () async {
         ref.invalidate(reportsDataProvider);
         ref.invalidate(adminDashboardDataProvider);
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppTheme.space16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Dashboard Dues summary card
             dashboardAsync.when(
-              loading: () => const LinearProgressIndicator(),
+              loading: () => const Center(child: Padding(
+                padding: EdgeInsets.all(AppTheme.space16),
+                child: SizedBox(height: 2, child: LinearProgressIndicator()),
+              )),
               error: (err, stack) => const SizedBox(),
-              data: (dData) => Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'P&L Performance Overview',
-                        style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Total Net Profit (All-Time):'),
-                          SelectableText(
-                            currencyFormat.format(dData.netProfit),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: dData.netProfit >= 0 ? AppTheme.successGreen : AppTheme.errorRed,
-                            ),
+              data: (dData) => AppCard(
+                padding: const EdgeInsets.all(AppTheme.space16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppSectionHeader(
+                      title: 'P&L PERFORMANCE OVERVIEW',
+                      icon: Icons.account_balance_rounded,
+                    ),
+                    const SizedBox(height: AppTheme.space16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Net Profit (All-Time)', style: AppTheme.body2),
+                        SelectableText(
+                          currencyFormat.format(dData.netProfit),
+                          style: AppTheme.heading3.copyWith(
+                            color: dData.netProfit >= 0 ? AppTheme.successGreen : AppTheme.errorRed,
                           ),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Total Outstanding Fees:'),
-                          SelectableText(
-                            currencyFormat.format(dData.pendingDues),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.warningAmber,
-                            ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: AppTheme.space20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Outstanding Fees', style: AppTheme.body2),
+                        SelectableText(
+                          currencyFormat.format(dData.pendingDues),
+                          style: AppTheme.heading3.copyWith(
+                            color: AppTheme.warningAmber,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.space20),
 
             // Chart Container
-            const Text(
-              'Income vs Expenses (Last 6 Months)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const AppSectionHeader(
+              title: 'INCOME VS EXPENSES (LAST 6 MONTHS)',
+              icon: Icons.bar_chart_rounded,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space12),
             reportsAsync.when(
               loading: () => const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(40.0),
-                  child: CircularProgressIndicator(),
+                  padding: EdgeInsets.all(AppTheme.space40),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                  ),
                 ),
               ),
-              error: (err, stack) => Center(child: Text('Error loading reports: $err')),
+              error: (err, stack) => AppErrorState(message: err.toString()),
               data: (rData) {
                 double maxVal = 5000;
                 for (final item in rData.last6Months) {
@@ -332,162 +333,162 @@ class _FinancialReportsView extends ConsumerWidget {
                 }
                 maxVal = (maxVal / 1000).ceil() * 1000.0;
 
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 24, 16, 12),
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: 220,
-                          child: BarChart(
-                            BarChartData(
-                              alignment: BarChartAlignment.spaceAround,
-                              maxY: maxVal,
-                              barTouchData: BarTouchData(
-                                touchTooltipData: BarTouchTooltipData(
-                                  getTooltipColor: (_) => Colors.grey[850]!,
-                                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                    final monthLabel = rData.last6Months[groupIndex].label;
-                                    final isIncome = rodIndex == 0;
-                                    return BarTooltipItem(
-                                      '$monthLabel\n${isIncome ? 'Income' : 'Expense'}: ${currencyFormat.format(rod.toY)}',
-                                      TextStyle(
-                                        color: isIncome ? Colors.lime : Colors.redAccent,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                return AppCard(
+                  padding: const EdgeInsets.fromLTRB(AppTheme.space8, AppTheme.space24, AppTheme.space16, AppTheme.space12),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 220,
+                        child: BarChart(
+                          BarChartData(
+                            alignment: BarChartAlignment.spaceAround,
+                            maxY: maxVal,
+                            barTouchData: BarTouchData(
+                              touchTooltipData: BarTouchTooltipData(
+                                getTooltipColor: (_) => AppTheme.darkCard,
+                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                  final monthLabel = rData.last6Months[groupIndex].label;
+                                  final isIncome = rodIndex == 0;
+                                  return BarTooltipItem(
+                                    '$monthLabel\n${isIncome ? 'Income' : 'Expense'}: ${currencyFormat.format(rod.toY)}',
+                                    AppTheme.subtitle2.copyWith(
+                                      color: isIncome ? AppTheme.accentLime : AppTheme.errorRed,
+                                      fontSize: 12,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            titlesData: FlTitlesData(
+                              show: true,
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  getTitlesWidget: (double value, TitleMeta meta) {
+                                    final index = value.toInt();
+                                    if (index >= 0 && index < rData.last6Months.length) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          rData.last6Months[index].label,
+                                          style: AppTheme.caption.copyWith(fontSize: 10),
+                                        ),
+                                      );
+                                    }
+                                    return const Text('');
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 45,
+                                  getTitlesWidget: (double value, TitleMeta meta) {
+                                    if (value == 0) return Text('₹0', style: AppTheme.caption.copyWith(fontSize: 8));
+                                    return Text(
+                                      '₹${(value / 1000).toStringAsFixed(1)}k',
+                                      style: AppTheme.caption.copyWith(fontSize: 8),
                                     );
                                   },
                                 ),
                               ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (double value, TitleMeta meta) {
-                                      final index = value.toInt();
-                                      if (index >= 0 && index < rData.last6Months.length) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
-                                          child: Text(
-                                            rData.last6Months[index].label,
-                                            style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                          ),
-                                        );
-                                      }
-                                      return const Text('');
-                                    },
-                                  ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 45,
-                                    getTitlesWidget: (double value, TitleMeta meta) {
-                                      if (value == 0) return const Text('₹0', style: TextStyle(fontSize: 8, color: Colors.grey));
-                                      return Text(
-                                        '₹${(value / 1000).toStringAsFixed(1)}k',
-                                        style: const TextStyle(fontSize: 8, color: Colors.grey),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              ),
-                              gridData: const FlGridData(show: true, drawVerticalLine: false),
-                              borderData: FlBorderData(show: false),
-                              barGroups: List.generate(rData.last6Months.length, (index) {
-                                final financials = rData.last6Months[index];
-                                return BarChartGroupData(
-                                  x: index,
-                                  barRods: [
-                                    BarChartRodData(
-                                      toY: financials.income,
-                                      color: Colors.lime,
-                                      width: 10,
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                    BarChartRodData(
-                                      toY: financials.expense,
-                                      color: AppTheme.errorRed,
-                                      width: 10,
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ],
-                                );
-                              }),
+                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                             ),
+                            gridData: const FlGridData(
+                              show: true,
+                              drawVerticalLine: false,
+                              horizontalInterval: 1000,
+                            ),
+                            borderData: FlBorderData(show: false),
+                            barGroups: List.generate(rData.last6Months.length, (index) {
+                              final financials = rData.last6Months[index];
+                              return BarChartGroupData(
+                                x: index,
+                                barRods: [
+                                  BarChartRodData(
+                                    toY: financials.income,
+                                    color: AppTheme.accentLime,
+                                    width: 10,
+                                    borderRadius: BorderRadius.circular(AppTheme.radius6),
+                                  ),
+                                  BarChartRodData(
+                                    toY: financials.expense,
+                                    color: AppTheme.errorRed,
+                                    width: 10,
+                                    borderRadius: BorderRadius.circular(AppTheme.radius6),
+                                  ),
+                                ],
+                              );
+                            }),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        // Legend
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.square, size: 12, color: Colors.lime),
-                                SizedBox(width: 4),
-                                Text('Income', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                              ],
-                            ),
-                            SizedBox(width: 24),
-                            Row(
-                              children: [
-                                Icon(Icons.square, size: 12, color: AppTheme.errorRed),
-                                SizedBox(width: 4),
-                                Text('Expense', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Rolling summary cards
-            reportsAsync.when(
-              loading: () => const SizedBox(),
-              error: (err, stack) => const SizedBox(),
-              data: (rData) => Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '6-Month Financial Summary',
-                        style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold),
                       ),
-                      const Divider(height: 24),
+                      const SizedBox(height: AppTheme.space16),
+                      // Legend
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('Total Period Income:'),
-                          SelectableText(
-                            currencyFormat.format(rData.totalIncome),
-                            style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.accentLime),
+                          Row(
+                            children: [
+                              Container(width: 12, height: 12, decoration: BoxDecoration(color: AppTheme.accentLime, borderRadius: BorderRadius.circular(3))),
+                              const SizedBox(width: 6),
+                              Text('Income', style: AppTheme.caption),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Total Period Expenses:'),
-                          SelectableText(
-                            currencyFormat.format(rData.totalExpenses),
-                            style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.errorRed),
+                          const SizedBox(width: 24),
+                          Row(
+                            children: [
+                              Container(width: 12, height: 12, decoration: BoxDecoration(color: AppTheme.errorRed, borderRadius: BorderRadius.circular(3))),
+                              const SizedBox(width: 6),
+                              Text('Expense', style: AppTheme.caption),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
+                );
+              },
+            ),
+            const SizedBox(height: AppTheme.space20),
+
+            // Rolling summary cards
+            reportsAsync.when(
+              loading: () => const SizedBox(),
+              error: (err, stack) => const SizedBox(),
+              data: (rData) => AppCard(
+                padding: const EdgeInsets.all(AppTheme.space16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppSectionHeader(
+                      title: '6-MONTH FINANCIAL SUMMARY',
+                      icon: Icons.pie_chart_outline_rounded,
+                    ),
+                    const Divider(height: AppTheme.space24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Period Income', style: AppTheme.body2),
+                        SelectableText(
+                          currencyFormat.format(rData.totalIncome),
+                          style: AppTheme.subtitle1.copyWith(color: AppTheme.accentLime, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Period Expenses', style: AppTheme.body2),
+                        SelectableText(
+                          currencyFormat.format(rData.totalExpenses),
+                          style: AppTheme.subtitle1.copyWith(color: AppTheme.errorRed, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -506,196 +507,206 @@ class _AttendanceReportsView extends ConsumerWidget {
     final attendanceReportsAsync = ref.watch(attendanceReportsDataProvider);
 
     return RefreshIndicator(
+      color: AppTheme.accentLime,
+      backgroundColor: AppTheme.darkCard,
       onRefresh: () async {
         ref.invalidate(attendanceReportsDataProvider);
       },
       child: attendanceReportsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error loading attendance reports: $err')),
+        loading: () => const AppLoadingState(itemCount: 4, itemHeight: 90),
+        error: (err, stack) => AppErrorState(
+          message: err.toString(),
+          onRetry: () => ref.invalidate(attendanceReportsDataProvider),
+        ),
         data: (data) {
           if (data.batchStats.isEmpty && data.dailyTrend.isEmpty) {
             return ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: const [
-                SizedBox(height: 120),
-                Center(child: Text('No attendance records logged in the last 30 days.')),
+                SizedBox(height: 80),
+                AppEmptyState(
+                  icon: Icons.rule_folder_rounded,
+                  title: 'No attendance records logged',
+                  subtitle: 'There are no logged entries in the last 30 days.',
+                ),
               ],
             );
           }
 
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(AppTheme.space16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Overall Rate Card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppTheme.accentLime.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.rule_rounded, size: 28, color: AppTheme.accentLime),
+                AppCard(
+                  padding: const EdgeInsets.all(AppTheme.space20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.space12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accentLime.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.15)),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('30-Day Attendance Rate', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${(data.overallRate * 100).toStringAsFixed(1)}%',
-                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.textPrimary),
-                              ),
-                            ],
-                          ),
+                        child: const Icon(Icons.rule_rounded, size: 24, color: AppTheme.accentLime),
+                      ),
+                      const SizedBox(width: AppTheme.space16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('30-Day Attendance Rate', style: AppTheme.caption),
+                            const SizedBox(height: AppTheme.space4),
+                            Text(
+                              '${(data.overallRate * 100).toStringAsFixed(1)}%',
+                              style: AppTheme.heading1.copyWith(fontSize: 28),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppTheme.space20),
 
                 // Attendance Trend Chart
                 if (data.dailyTrend.isNotEmpty) ...[
-                  const Text('Attendance Trend (Past 30 Days)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 24, 16, 12),
-                      child: SizedBox(
-                        height: 220,
-                        child: LineChart(
-                          LineChartData(
-                            lineTouchData: LineTouchData(
-                              touchTooltipData: LineTouchTooltipData(
-                                getTooltipColor: (_) => Colors.grey[850]!,
-                                getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                                  return touchedSpots.map((spot) {
-                                    final dayData = data.dailyTrend[spot.x.toInt()];
-                                    final percentage = dayData.total > 0 ? (dayData.present / dayData.total * 100) : 0.0;
-                                    return LineTooltipItem(
-                                      '${dayData.dateLabel}\nPresent: ${dayData.present}/${dayData.total}\nRate: ${percentage.toStringAsFixed(1)}%',
-                                      const TextStyle(color: AppTheme.accentTeal, fontWeight: FontWeight.bold),
+                  const AppSectionHeader(
+                    title: 'ATTENDANCE TREND (PAST 30 DAYS)',
+                    icon: Icons.show_chart_rounded,
+                  ),
+                  const SizedBox(height: AppTheme.space12),
+                  AppCard(
+                    padding: const EdgeInsets.fromLTRB(AppTheme.space8, AppTheme.space24, AppTheme.space16, AppTheme.space12),
+                    child: SizedBox(
+                      height: 220,
+                      child: LineChart(
+                        LineChartData(
+                          lineTouchData: LineTouchData(
+                            touchTooltipData: LineTouchTooltipData(
+                              getTooltipColor: (_) => AppTheme.darkCard,
+                              getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                                return touchedSpots.map((spot) {
+                                  final dayData = data.dailyTrend[spot.x.toInt()];
+                                  final percentage = dayData.total > 0 ? (dayData.present / dayData.total * 100) : 0.0;
+                                  return LineTooltipItem(
+                                    '${dayData.dateLabel}\nPresent: ${dayData.present}/${dayData.total}\nRate: ${percentage.toStringAsFixed(1)}%',
+                                    AppTheme.subtitle2.copyWith(color: AppTheme.accentTeal, fontSize: 12),
+                                  );
+                                }).toList();
+                              },
+                            ),
+                          ),
+                          gridData: const FlGridData(show: true, drawVerticalLine: false),
+                          titlesData: FlTitlesData(
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  final index = value.toInt();
+                                  if (index >= 0 && index < data.dailyTrend.length && index % 5 == 0) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(data.dailyTrend[index].dateLabel, style: AppTheme.caption.copyWith(fontSize: 8)),
                                     );
-                                  }).toList();
+                                  }
+                                  return const Text('');
                                 },
                               ),
                             ),
-                            gridData: const FlGridData(show: true, drawVerticalLine: false),
-                            titlesData: FlTitlesData(
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    final index = value.toInt();
-                                    // Show labels for every 5th item to avoid crowding on mobile screen
-                                    if (index >= 0 && index < data.dailyTrend.length && index % 5 == 0) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 8.0),
-                                        child: Text(data.dailyTrend[index].dateLabel, style: const TextStyle(fontSize: 8, color: Colors.grey)),
-                                      );
-                                    }
-                                    return const Text('');
-                                  },
-                                ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) {
+                                  return Text('${value.toInt()}%', style: AppTheme.caption.copyWith(fontSize: 8));
+                                },
                               ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 40,
-                                  getTitlesWidget: (value, meta) {
-                                    return Text('${value.toInt()}%', style: const TextStyle(fontSize: 8, color: Colors.grey));
-                                  },
-                                ),
-                              ),
-                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                             ),
-                            borderData: FlBorderData(show: false),
-                            minY: 0,
-                            maxY: 100,
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: List.generate(data.dailyTrend.length, (idx) {
-                                  final day = data.dailyTrend[idx];
-                                  final rate = day.total > 0 ? (day.present / day.total * 100) : 0.0;
-                                  return FlSpot(idx.toDouble(), rate);
-                                }),
-                                isCurved: true,
-                                color: AppTheme.accentTeal,
-                                barWidth: 3,
-                                isStrokeCapRound: true,
-                                dotData: const FlDotData(show: false),
-                                belowBarData: BarAreaData(
-                                  show: true,
-                                  color: AppTheme.accentTeal.withValues(alpha: 0.1),
-                                ),
-                              ),
-                            ],
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                           ),
+                          borderData: FlBorderData(show: false),
+                          minY: 0,
+                          maxY: 100,
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: List.generate(data.dailyTrend.length, (idx) {
+                                final day = data.dailyTrend[idx];
+                                final rate = day.total > 0 ? (day.present / day.total * 100) : 0.0;
+                                return FlSpot(idx.toDouble(), rate);
+                              }),
+                              isCurved: true,
+                              color: AppTheme.accentTeal,
+                              barWidth: 3,
+                              isStrokeCapRound: true,
+                              dotData: const FlDotData(show: false),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: AppTheme.accentTeal.withValues(alpha: 0.05),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppTheme.space20),
                 ],
 
                 // Batch Stats Section
-                const Text('Attendance by Batch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
+                const AppSectionHeader(
+                  title: 'ATTENDANCE BY BATCH',
+                  icon: Icons.groups_rounded,
+                ),
+                const SizedBox(height: AppTheme.space12),
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: data.batchStats.length,
                   itemBuilder: (context, idx) {
                     final bStats = data.batchStats[idx];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                    final Color progressColor = bStats.attendanceRate >= 0.75
+                        ? AppTheme.successGreen
+                        : (bStats.attendanceRate >= 0.5 ? AppTheme.warningAmber : AppTheme.errorRed);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppTheme.space10),
+                      child: AppCard(
+                        padding: const EdgeInsets.all(AppTheme.space16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(bStats.batchName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                Text(bStats.batchName, style: AppTheme.subtitle1),
                                 Text(
                                   '${(bStats.attendanceRate * 100).toStringAsFixed(0)}%',
-                                  style: TextStyle(
-                                    fontSize: 15,
+                                  style: AppTheme.subtitle1.copyWith(
                                     fontWeight: FontWeight.w800,
-                                    color: bStats.attendanceRate >= 0.75
-                                        ? AppTheme.successGreen
-                                        : (bStats.attendanceRate >= 0.5 ? AppTheme.warningAmber : AppTheme.errorRed),
+                                    color: progressColor,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppTheme.space8),
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(AppTheme.radius6),
                               child: LinearProgressIndicator(
                                 value: bStats.attendanceRate,
-                                minHeight: 8,
-                                color: bStats.attendanceRate >= 0.75
-                                    ? AppTheme.successGreen
-                                    : (bStats.attendanceRate >= 0.5 ? AppTheme.warningAmber : AppTheme.errorRed),
+                                minHeight: 6,
+                                color: progressColor,
                                 backgroundColor: AppTheme.darkBorder,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppTheme.space8),
                             Text(
                               'Present Count: ${bStats.presentCount} / ${bStats.totalCount} marks total',
-                              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                              style: AppTheme.caption,
                             ),
                           ],
                         ),

@@ -8,6 +8,7 @@ import '../../../shared/models/expense.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/expense_repository.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../shared/widgets/app_widgets.dart';
 
 final expensesListProvider = FutureProvider.autoDispose<List<Expense>>((ref) async {
   final expenseRepo = ref.watch(expenseRepositoryProvider);
@@ -28,6 +29,25 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     return cat.replaceAll('_', ' ').toUpperCase();
   }
 
+  Color _getCategoryColor(String cat) {
+    switch (cat.toLowerCase()) {
+      case 'equipment':
+        return AppTheme.accentLime;
+      case 'cricket_pitch':
+        return AppTheme.accentOrange;
+      case 'football_ground':
+        return AppTheme.accentTeal;
+      case 'shed_construction':
+        return AppTheme.accentPurple;
+      case 'maintenance':
+        return AppTheme.infoBlue;
+      case 'salary':
+        return AppTheme.successGreen;
+      default:
+        return AppTheme.textSecondary;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final expensesAsync = ref.watch(expensesListProvider);
@@ -39,27 +59,33 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showLogExpenseDialog,
-        child: const Icon(Icons.add),
+        backgroundColor: AppTheme.accentLime,
+        foregroundColor: Colors.black,
+        child: const Icon(Icons.add_rounded, size: 24),
       ),
       body: RefreshIndicator(
+        color: AppTheme.accentLime,
+        backgroundColor: AppTheme.darkCard,
         onRefresh: () async {
           ref.invalidate(expensesListProvider);
         },
         child: expensesAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Error loading expenses: $err'),
-            ),
+          loading: () => const AppLoadingState(itemCount: 4, itemHeight: 150),
+          error: (err, stack) => AppErrorState(
+            message: err.toString(),
+            onRetry: () => ref.invalidate(expensesListProvider),
           ),
           data: (expenses) {
             if (expenses.isEmpty) {
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
-                  SizedBox(height: 120),
-                  Center(child: Text('No expenses recorded yet.')),
+                  SizedBox(height: 80),
+                  AppEmptyState(
+                    icon: Icons.account_balance_wallet_rounded,
+                    title: 'No expenses recorded yet',
+                    subtitle: 'Use the floating action button below to log a new expense.',
+                  ),
                 ],
               );
             }
@@ -67,13 +93,15 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             return ListView.builder(
               itemCount: expenses.length,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(AppTheme.space16),
               itemBuilder: (context, index) {
                 final expense = expenses[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                final catColor = _getCategoryColor(expense.category);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppTheme.space12),
+                  child: AppCard(
+                    padding: const EdgeInsets.all(AppTheme.space16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -81,37 +109,53 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppTheme.space10,
+                                vertical: AppTheme.space4,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppTheme.errorRed.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
+                                color: catColor.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(AppTheme.radius8),
+                                border: Border.all(color: catColor.withValues(alpha: 0.15), width: 0.5),
                               ),
                               child: Text(
                                 _formatCategory(expense.category),
-                                style: const TextStyle(fontSize: 10, color: AppTheme.errorRed, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                                style: AppTheme.overline.copyWith(
+                                  fontSize: 9,
+                                  color: catColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-                            SelectableText(
+                            Text(
                               currencyFormat.format(expense.amount),
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.errorRed),
+                              style: AppTheme.subtitle1.copyWith(
+                                color: AppTheme.errorRed,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppTheme.space12),
                         if (expense.description != null && expense.description!.isNotEmpty) ...[
-                          SelectableText(
+                          Text(
                             expense.description!,
-                            style: const TextStyle(fontSize: 14),
+                            style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppTheme.space12),
                         ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            SelectableText(
-                              DateFormat('dd MMM yyyy').format(expense.date),
-                              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                            Row(
+                              children: [
+                                const Icon(Icons.event_rounded, size: 12, color: AppTheme.textMuted),
+                                const SizedBox(width: AppTheme.space4),
+                                Text(
+                                  DateFormat('dd MMM yyyy').format(expense.date),
+                                  style: AppTheme.caption,
+                                ),
+                              ],
                             ),
                             if (expense.receiptUrl != null && expense.receiptUrl!.isNotEmpty)
                               MouseRegion(
@@ -119,49 +163,77 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                                 child: GestureDetector(
                                   onTap: () => _showReceiptPreview(expense.receiptUrl!),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.accentLime.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.3)),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppTheme.space10,
+                                      vertical: AppTheme.space4,
                                     ),
-                                    child: const Row(
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.accentLime.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(AppTheme.radius8),
+                                      border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.15), width: 0.5),
+                                    ),
+                                    child: Row(
                                       children: [
-                                        Icon(Icons.receipt_long, size: 14, color: AppTheme.accentLime),
-                                        SizedBox(width: 4),
-                                        Text('View Receipt', style: TextStyle(fontSize: 10, color: AppTheme.accentLime, fontWeight: FontWeight.w700)),
+                                        const Icon(Icons.receipt_long_rounded, size: 12, color: AppTheme.accentLime),
+                                        const SizedBox(width: AppTheme.space4),
+                                        Text(
+                                          'VIEW RECEIPT',
+                                          style: AppTheme.overline.copyWith(
+                                            fontSize: 9,
+                                            color: AppTheme.accentLime,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
                               )
                             else
-                              const Text('No Receipt', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                              Text(
+                                'No Receipt Attached',
+                                style: AppTheme.caption.copyWith(fontSize: 10),
+                              ),
                           ],
                         ),
-                        const Divider(height: 20),
+                        const Divider(height: AppTheme.space24),
                         Row(
                           children: [
                             Expanded(
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.edit_outlined, size: 16),
-                                label: const Text('Edit', style: TextStyle(fontSize: 13)),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: SizedBox(
+                                height: 38,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.edit_outlined, size: 14),
+                                  label: const Text('Edit'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(AppTheme.radius10),
+                                    ),
+                                    textStyle: AppTheme.buttonText.copyWith(fontSize: 12),
+                                  ),
+                                  onPressed: () => _showEditExpenseDialog(expense),
                                 ),
-                                onPressed: () => _showEditExpenseDialog(expense),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: AppTheme.space12),
                             Expanded(
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.delete_outline, size: 16, color: AppTheme.errorRed),
-                                label: const Text('Delete', style: TextStyle(fontSize: 13, color: AppTheme.errorRed)),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
-                                  side: BorderSide(color: AppTheme.errorRed.withValues(alpha: 0.4)),
+                              child: SizedBox(
+                                height: 38,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.delete_outline_rounded, size: 14, color: AppTheme.errorRed),
+                                  label: const Text('Delete'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    foregroundColor: AppTheme.errorRed,
+                                    side: BorderSide(color: AppTheme.errorRed.withValues(alpha: 0.2)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(AppTheme.radius10),
+                                    ),
+                                    textStyle: AppTheme.buttonText.copyWith(fontSize: 12),
+                                  ),
+                                  onPressed: () => _confirmDeleteExpense(expense),
                                 ),
-                                onPressed: () => _confirmDeleteExpense(expense),
                               ),
                             ),
                           ],
@@ -208,6 +280,19 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               initialDate: expenseDate,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: AppTheme.accentLime,
+                      onPrimary: Colors.black,
+                      surface: AppTheme.darkCard,
+                      onSurface: AppTheme.textPrimary,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
             );
             if (picked != null) {
               setState(() {
@@ -240,7 +325,13 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               if (mounted) {
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Expense logged successfully!')),
+                  SnackBar(
+                    content: Text(
+                      'Expense logged successfully!',
+                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                    ),
+                    backgroundColor: AppTheme.darkCard,
+                  ),
                 );
               }
             } catch (e) {
@@ -255,11 +346,30 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           }
 
           return AlertDialog(
-            title: const Text('Log Expense'),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.space8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorRed.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radius10),
+                  ),
+                  child: const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.errorRed, size: 20),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Text('Log Expense', style: AppTheme.heading3),
+              ],
+            ),
             content: _isSaving
                 ? const SizedBox(
                     height: 100,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                      ),
+                    ),
                   )
                 : Form(
                     key: formKey,
@@ -270,6 +380,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         children: [
                           DropdownButtonFormField<String>(
                             value: selectedCategory,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Category *'),
                             items: const [
                               DropdownMenuItem(value: 'equipment', child: Text('Equipment')),
@@ -284,10 +395,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               if (val != null) selectedCategory = val;
                             },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           TextFormField(
                             controller: amountController,
                             keyboardType: TextInputType.number,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Amount (₹) *'),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Enter amount';
@@ -295,28 +407,34 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           InkWell(
                             onTap: pickDate,
                             mouseCursor: SystemMouseCursors.click,
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'Date',
-                                suffixIcon: Icon(Icons.calendar_today),
+                                suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
                               ),
-                              child: Text(DateFormat('dd MMMM yyyy').format(expenseDate)),
+                              child: Text(
+                                DateFormat('dd MMMM yyyy').format(expenseDate),
+                                style: AppTheme.body1,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           TextFormField(
                             controller: descController,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Description / Remarks'),
                             maxLines: 2,
                           ),
-                          const SizedBox(height: 16),
-                          // Receipt Image Selector
-                          const Text('Attach Receipt Receipt (Optional)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppTheme.space16),
+                          Text(
+                            'Attach Receipt (Optional)', 
+                            style: AppTheme.caption,
+                          ),
+                          const SizedBox(height: AppTheme.space8),
                           MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: GestureDetector(
@@ -327,7 +445,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                                     child: Wrap(
                                       children: [
                                         ListTile(
-                                          leading: const Icon(Icons.camera_alt),
+                                          leading: const Icon(Icons.camera_alt_rounded),
                                           title: const Text('Capture Camera'),
                                           onTap: () {
                                             Navigator.of(bctx).pop();
@@ -335,7 +453,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                                           },
                                         ),
                                         ListTile(
-                                          leading: const Icon(Icons.photo_library),
+                                          leading: const Icon(Icons.photo_library_rounded),
                                           title: const Text('Choose Library'),
                                           onTap: () {
                                             Navigator.of(bctx).pop();
@@ -348,24 +466,27 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                                 );
                               },
                               child: Container(
-                                height: 100,
+                                height: 110,
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[800],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.lime, style: BorderStyle.solid),
+                                  color: AppTheme.darkBg,
+                                  borderRadius: BorderRadius.circular(AppTheme.radius12),
+                                  border: Border.all(color: AppTheme.darkBorder),
                                 ),
                                 child: receiptFile != null
                                     ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(AppTheme.radius12),
                                         child: Image.file(File(receiptFile!.path), fit: BoxFit.cover),
                                       )
-                                    : const Center(
+                                    : Center(
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(Icons.add_photo_alternate_outlined, color: Colors.lime),
-                                            SizedBox(height: 4),
-                                            Text('Add Photo', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                            Icon(Icons.add_photo_alternate_outlined, color: AppTheme.accentLime, size: 24),
+                                            const SizedBox(height: AppTheme.space4),
+                                            Text(
+                                              'Add Photo', 
+                                              style: AppTheme.caption.copyWith(fontSize: 10),
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -383,6 +504,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               ),
               ElevatedButton(
                 onPressed: _isSaving ? null : save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: Colors.black,
+                ),
                 child: const Text('Save'),
               ),
             ],
@@ -396,17 +521,42 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Receipt Attachment'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.accentLime.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+              ),
+              child: const Icon(Icons.receipt_long_rounded, color: AppTheme.accentLime, size: 20),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Text('Receipt Attachment', style: AppTheme.heading3),
+          ],
+        ),
         content: Consumer(
           builder: (context, ref, child) {
             final bytesAsync = ref.watch(expenseReceiptBytesProvider(path));
             return bytesAsync.when(
-              data: (bytes) => Image.memory(bytes, fit: BoxFit.contain),
+              data: (bytes) => Container(
+                constraints: const BoxConstraints(maxHeight: 350),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radius12),
+                  child: Image.memory(bytes, fit: BoxFit.contain),
+                ),
+              ),
               loading: () => const SizedBox(
                 height: 150,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                  ),
+                ),
               ),
-              error: (err, stack) => Text('Failed to load image: $err'),
+              error: (err, stack) => Text('Failed to load image: $err', style: AppTheme.caption.copyWith(color: AppTheme.errorRed)),
             );
           },
         ),
@@ -439,6 +589,19 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               initialDate: expenseDate,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: AppTheme.accentLime,
+                      onPrimary: Colors.black,
+                      surface: AppTheme.darkCard,
+                      onSurface: AppTheme.textPrimary,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
             );
             if (picked != null) {
               setState(() {
@@ -468,7 +631,13 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               if (mounted) {
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Expense updated successfully!')),
+                  SnackBar(
+                    content: Text(
+                      'Expense updated successfully!',
+                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                    ),
+                    backgroundColor: AppTheme.darkCard,
+                  ),
                 );
               }
             } catch (e) {
@@ -483,11 +652,30 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           }
 
           return AlertDialog(
-            title: const Text('Edit Expense'),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.space8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radius10),
+                  ),
+                  child: const Icon(Icons.edit_rounded, color: AppTheme.accentLime, size: 20),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Text('Edit Expense', style: AppTheme.heading3),
+              ],
+            ),
             content: _isSaving
                 ? const SizedBox(
                     height: 100,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                      ),
+                    ),
                   )
                 : Form(
                     key: formKey,
@@ -498,6 +686,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         children: [
                           DropdownButtonFormField<String>(
                             value: selectedCategory,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Category *'),
                             items: const [
                               DropdownMenuItem(value: 'equipment', child: Text('Equipment')),
@@ -512,10 +701,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               if (val != null) selectedCategory = val;
                             },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           TextFormField(
                             controller: amountController,
                             keyboardType: TextInputType.number,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Amount (₹) *'),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Enter amount';
@@ -523,21 +713,25 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           InkWell(
                             onTap: pickDate,
                             mouseCursor: SystemMouseCursors.click,
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'Date',
-                                suffixIcon: Icon(Icons.calendar_today),
+                                suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
                               ),
-                              child: Text(DateFormat('dd MMMM yyyy').format(expenseDate)),
+                              child: Text(
+                                DateFormat('dd MMMM yyyy').format(expenseDate),
+                                style: AppTheme.body1,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           TextFormField(
                             controller: descController,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Description / Remarks'),
                             maxLines: 2,
                           ),
@@ -552,6 +746,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               ),
               ElevatedButton(
                 onPressed: _isSaving ? null : save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: Colors.black,
+                ),
                 child: const Text('Save Changes'),
               ),
             ],
@@ -566,8 +764,24 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Expense'),
-        content: Text('Are you sure you want to delete the expense for ${currencyFormat.format(expense.amount)} (${_formatCategory(expense.category)})? This action cannot be undone.'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppTheme.errorRed, size: 20),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Text('Delete Expense', style: AppTheme.heading3),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete the expense for ${currencyFormat.format(expense.amount)} (${_formatCategory(expense.category)})? This action cannot be undone.',
+          style: AppTheme.body2.copyWith(height: 1.4),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -582,7 +796,13 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 ref.invalidate(expensesListProvider);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Expense deleted successfully!')),
+                    SnackBar(
+                      content: Text(
+                        'Expense deleted successfully!',
+                        style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                      ),
+                      backgroundColor: AppTheme.darkCard,
+                    ),
                   );
                 }
               } catch (e) {
@@ -591,7 +811,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Delete'),
           ),
         ],

@@ -5,6 +5,7 @@ import '../../features/auth/controllers/auth_controller.dart';
 import '../../features/auth/screens/auth_screen.dart';
 import '../../features/auth/screens/change_password_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
+import '../../features/dashboard/screens/actions_hub_screen.dart';
 import '../../features/students/screens/student_list_screen.dart';
 import '../../features/students/screens/student_form_screen.dart';
 import '../../features/students/screens/student_profile_screen.dart';
@@ -18,6 +19,7 @@ import '../../features/users/screens/coaches_screen.dart';
 import '../../features/batches/screens/batch_list_screen.dart';
 import '../../features/batches/screens/batch_form_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
+import '../../shared/widgets/main_navigation_layout.dart';
 
 class AuthRefreshListenable extends ChangeNotifier {
   AuthRefreshListenable(Ref ref) {
@@ -51,14 +53,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/change-password',
         builder: (context, state) => const ChangePasswordScreen(),
       ),
-      GoRoute(
-        path: '/dashboard',
-        builder: (context, state) => const DashboardScreen(),
+      ShellRoute(
+        builder: (context, state, child) {
+          return MainNavigationLayout(child: child);
+        },
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: '/students',
+            builder: (context, state) => const StudentListScreen(),
+          ),
+          GoRoute(
+            path: '/batches',
+            builder: (context, state) => const BatchListScreen(),
+          ),
+          GoRoute(
+            path: '/hub',
+            builder: (context, state) => const ActionsHubScreen(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/attendance',
+            builder: (context, state) => const AttendanceScreen(),
+          ),
+        ],
       ),
-      GoRoute(
-        path: '/students',
-        builder: (context, state) => const StudentListScreen(),
-      ),
+      // Subpages outside Shell (they slide over the bottom nav bar)
       GoRoute(
         path: '/students/new',
         builder: (context, state) => const StudentFormScreen(),
@@ -78,10 +104,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/batches',
-        builder: (context, state) => const BatchListScreen(),
-      ),
-      GoRoute(
         path: '/batches/new',
         builder: (context, state) => const BatchFormScreen(),
       ),
@@ -91,10 +113,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           final batch = state.extra as Batch?;
           return BatchFormScreen(batch: batch);
         },
-      ),
-      GoRoute(
-        path: '/attendance',
-        builder: (context, state) => const AttendanceScreen(),
       ),
       GoRoute(
         path: '/fees',
@@ -111,10 +129,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/users',
         builder: (context, state) => const CoachesScreen(),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
       ),
     ],
     redirect: (context, state) {

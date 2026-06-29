@@ -6,9 +6,14 @@ import '../../../core/supabase/supabase_client.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/models/batch.dart';
 import '../../../shared/utils/seed_helper.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../students/repositories/batch_repository.dart';
 import '../../students/repositories/student_repository.dart';
+
+// ═══════════════════════════════════════════════════════════════════
+// DATA CLASSES & PROVIDERS — Completely unchanged
+// ═══════════════════════════════════════════════════════════════════
 
 class AdminDashboardData {
   final int totalStudents;
@@ -132,6 +137,10 @@ final coachDashboardDataProvider = FutureProvider.autoDispose<CoachDashboardData
   );
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// DASHBOARD SCREEN
+// ═══════════════════════════════════════════════════════════════════
+
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -141,18 +150,15 @@ class DashboardScreen extends ConsumerWidget {
     final profile = authState.profile;
 
     if (profile == null) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                color: AppTheme.accentLime,
-                strokeWidth: 2.5,
-              ),
-              const SizedBox(height: 16),
-              const Text('Loading your dashboard...', style: TextStyle(color: AppTheme.textSecondary)),
-            ],
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: AppTheme.accentLime,
+              strokeWidth: 2.5,
+            ),
           ),
         ),
       );
@@ -169,27 +175,28 @@ class DashboardScreen extends ConsumerWidget {
             }
           },
           color: AppTheme.accentLime,
+          backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // Custom App Bar
+              // Top Bar
               SliverToBoxAdapter(
                 child: _buildTopBar(context, ref, profile.fullName, profile.isAdmin),
               ),
-              // Greeting
+              // Role Badge
               SliverToBoxAdapter(
-                child: _buildGreetingCard(profile.fullName, profile.isAdmin),
+                child: _buildRoleBadge(context, profile.isAdmin),
               ),
-              // Dashboard content
+              // Dashboard Content
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
                   child: profile.isAdmin
                       ? _buildAdminDashboard(context, ref)
                       : _buildCoachDashboard(context, ref),
                 ),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              const SliverToBoxAdapter(child: SizedBox(height: AppTheme.space24)),
             ],
           ),
         ),
@@ -197,71 +204,96 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  // ─── TOP BAR ─────────────────────────────────────────────────────
+
   Widget _buildTopBar(BuildContext context, WidgetRef ref, String name, bool isAdmin) {
     final now = DateTime.now();
-    final greeting = now.hour < 12 ? 'Good Morning' : (now.hour < 17 ? 'Good Afternoon' : 'Good Evening');
-    
+    final greeting = now.hour < 12
+        ? 'Good Morning'
+        : (now.hour < 17 ? 'Good Afternoon' : 'Good Evening');
+    final dateStr = DateFormat('EEE, d MMM').format(now);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
+      padding: const EdgeInsets.fromLTRB(AppTheme.space16, AppTheme.space12, AppTheme.space16, 0),
       child: Row(
         children: [
+          // Avatar
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: isAdmin ? AppTheme.limeGradient : AppTheme.tealGradient,
+              borderRadius: BorderRadius.circular(AppTheme.radius10),
+            ),
+            child: Center(
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: AppTheme.subtitle1.copyWith(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppTheme.space12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '$greeting 👋',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: AppTheme.caption.copyWith(color: AppTheme.textMuted, fontSize: 10),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
+                const SizedBox(height: AppTheme.space2),
+                Text(name, style: AppTheme.heading3.copyWith(fontSize: 15)),
               ],
             ),
           ),
-          // Notification / Profile area
+          // Date badge
           Container(
-            decoration: BoxDecoration(
-              color: AppTheme.darkCard,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.darkBorder),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.space10,
+              vertical: AppTheme.space4,
             ),
-            child: IconButton(
-              icon: const Icon(Icons.logout_rounded, size: 20),
-              onPressed: () => _showLogoutDialog(context, ref),
-              tooltip: 'Sign Out',
-              color: AppTheme.textSecondary,
-            ),
+            decoration: AppTheme.subtleCard(borderRadius: AppTheme.radius8),
+            child: Text(dateStr, style: AppTheme.labelSmall.copyWith(fontSize: 9)),
+          ),
+          const SizedBox(width: AppTheme.space6),
+          // Logout
+          AppIconButton(
+            icon: Icons.logout_rounded,
+            onTap: () => _showLogoutDialog(context, ref),
+            tooltip: 'Sign Out',
           ),
         ],
       ),
     );
   }
 
+  // ─── LOGOUT DIALOG ──────────────────────────────────────────────
+
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.logout_rounded, color: AppTheme.errorRed, size: 22),
-            SizedBox(width: 12),
-            Text('Sign Out'),
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+              ),
+              child: const Icon(Icons.logout_rounded, color: AppTheme.errorRed, size: 20),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Text('Sign Out', style: AppTheme.heading3),
           ],
         ),
-        content: const Text(
-          'Are you sure you want to sign out?',
-          style: TextStyle(color: AppTheme.textSecondary),
+        content: Text(
+          'Are you sure you want to sign out of your account?',
+          style: AppTheme.body2,
         ),
         actions: [
           TextButton(
@@ -284,77 +316,35 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGreetingCard(String name, bool isAdmin) {
+  // ─── ROLE BADGE ──────────────────────────────────────────────────
+
+  Widget _buildRoleBadge(BuildContext context, bool isAdmin) {
+    final theme = Theme.of(context);
+    final accentColor = isAdmin ? AppTheme.accentLime : AppTheme.accentTeal;
+    final gradient = isAdmin ? AppTheme.limeGradient : AppTheme.tealGradient;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+      padding: const EdgeInsets.fromLTRB(AppTheme.space16, AppTheme.space12, AppTheme.space16, AppTheme.space12),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space10),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isAdmin
-                ? [
-                    AppTheme.accentLime.withValues(alpha: 0.12),
-                    AppTheme.accentLime.withValues(alpha: 0.03),
-                    AppTheme.darkCard,
-                  ]
-                : [
-                    AppTheme.accentTeal.withValues(alpha: 0.12),
-                    AppTheme.accentTeal.withValues(alpha: 0.03),
-                    AppTheme.darkCard,
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: (isAdmin ? AppTheme.accentLime : AppTheme.accentTeal).withValues(alpha: 0.15),
-          ),
+          color: theme.cardTheme.color ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radius10),
+          border: Border.all(color: theme.colorScheme.outline, width: 0.8),
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: isAdmin ? AppTheme.limeGradient : AppTheme.tealGradient,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isAdmin ? AppTheme.accentLime : AppTheme.accentTeal).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(
-                isAdmin ? Icons.shield_outlined : Icons.sports_outlined,
-                size: 24,
-                color: Colors.black,
-              ),
+            AppGradientIcon(
+              icon: isAdmin ? Icons.shield_outlined : Icons.sports_outlined,
+              gradient: gradient,
+              size: 16,
+              padding: AppTheme.space6,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppTheme.space10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isAdmin ? 'Admin Dashboard' : 'Coach Dashboard',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  SelectableText(
-                    isAdmin
-                        ? 'Full control over academy operations'
-                        : 'Manage your batch and attendance',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
+              child: Text(
+                isAdmin ? 'Admin Portal Access' : 'Coach Portal Access',
+                style: AppTheme.subtitle2.copyWith(fontSize: 12),
               ),
             ),
           ],
@@ -363,21 +353,32 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // ADMIN DASHBOARD
+  // ═══════════════════════════════════════════════════════════════════
+
   Widget _buildAdminDashboard(BuildContext context, WidgetRef ref) {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
     final dashboardAsync = ref.watch(adminDashboardDataProvider);
 
     return dashboardAsync.when(
       loading: () => const Padding(
-        padding: EdgeInsets.all(48.0),
+        padding: EdgeInsets.all(AppTheme.space32),
         child: Center(
-          child: CircularProgressIndicator(
-            color: AppTheme.accentLime,
-            strokeWidth: 2.5,
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: AppTheme.accentLime,
+              strokeWidth: 2.5,
+            ),
           ),
         ),
       ),
-      error: (err, stack) => _buildErrorWidget(err.toString()),
+      error: (err, stack) => AppErrorState(
+        message: err.toString(),
+        onRetry: () => ref.invalidate(adminDashboardDataProvider),
+      ),
       data: (data) {
         final isEmpty = data.totalStudents == 0;
 
@@ -386,17 +387,20 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             if (isEmpty) _buildSeedCard(context, ref),
 
-            // Stats section header
-            const _SectionHeader(title: 'Overview', icon: Icons.analytics_outlined),
-            const SizedBox(height: 12),
+            // High-end P&L Performance Summary Card
+            _buildNetProfitBanner(context, data.netProfit, currencyFormat),
 
-            // Stats Grid — 2 columns
+            // Overview Section Header
+            const AppSectionHeader(title: 'OVERVIEW', icon: Icons.analytics_outlined),
+            const SizedBox(height: AppTheme.space8),
+
+            // Stats Grid — Dense 3-column layout (exactly 2 rows)
             GridView.count(
-              crossAxisCount: 2,
+              crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
+              mainAxisSpacing: AppTheme.space8,
+              crossAxisSpacing: AppTheme.space8,
               childAspectRatio: 1.45,
               children: [
                 _StatCard(
@@ -404,179 +408,157 @@ class DashboardScreen extends ConsumerWidget {
                   value: '${data.totalStudents}',
                   icon: Icons.people_alt_rounded,
                   gradient: AppTheme.limeGradient,
-                  iconBgColor: AppTheme.accentLime,
+                  accentColor: AppTheme.accentLime,
                 ),
                 _StatCard(
                   label: 'Active Students',
                   value: '${data.activeStudents}',
                   icon: Icons.verified_rounded,
                   gradient: AppTheme.tealGradient,
-                  iconBgColor: AppTheme.accentTeal,
+                  accentColor: AppTheme.accentTeal,
+                ),
+                _StatCard(
+                  label: 'Attendance Today',
+                  value: data.todayTotal > 0
+                      ? '${data.todayPresent}/${data.todayTotal}'
+                      : 'N/A',
+                  icon: Icons.fact_check_rounded,
+                  gradient: AppTheme.blueGradient,
+                  accentColor: AppTheme.infoBlue,
                 ),
                 _StatCard(
                   label: 'Monthly Income',
                   value: currencyFormat.format(data.monthlyIncome),
                   icon: Icons.trending_up_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF34D399), Color(0xFF059669)],
-                  ),
-                  iconBgColor: AppTheme.successGreen,
+                  gradient: AppTheme.greenGradient,
+                  accentColor: AppTheme.successGreen,
                 ),
                 _StatCard(
                   label: 'Monthly Expenses',
                   value: currencyFormat.format(data.monthlyExpenses),
                   icon: Icons.trending_down_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFF87171), Color(0xFFDC2626)],
-                  ),
-                  iconBgColor: AppTheme.errorRed,
-                ),
-                _StatCard(
-                  label: 'Net Profit (P&L)',
-                  value: currencyFormat.format(data.netProfit),
-                  icon: Icons.account_balance_rounded,
-                  gradient: AppTheme.purpleGradient,
-                  iconBgColor: AppTheme.accentPurple,
-                  isHighlighted: true,
+                  gradient: AppTheme.redGradient,
+                  accentColor: AppTheme.errorRed,
                 ),
                 _StatCard(
                   label: 'Pending Dues',
                   value: currencyFormat.format(data.pendingDues),
                   icon: Icons.warning_amber_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
-                  ),
-                  iconBgColor: AppTheme.warningAmber,
-                ),
-                _StatCard(
-                  label: 'Today\'s Attendance',
-                  value: data.todayTotal > 0
-                      ? '${data.todayPresent}/${data.todayTotal}'
-                      : 'N/A',
-                  icon: Icons.fact_check_rounded,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF60A5FA), Color(0xFF3B82F6)],
-                  ),
-                  iconBgColor: AppTheme.infoBlue,
+                  gradient: AppTheme.amberGradient,
+                  accentColor: AppTheme.warningAmber,
                 ),
               ],
             ),
-            const SizedBox(height: 28),
-
-            // Quick Actions
-            const _SectionHeader(title: 'Quick Actions', icon: Icons.bolt_rounded),
-            const SizedBox(height: 12),
-
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.9,
-              children: [
-                _ActionCard(
-                  label: 'Students',
-                  icon: Icons.school_rounded,
-                  color: AppTheme.accentLime,
-                  onTap: () => context.push('/students'),
-                ),
-                _ActionCard(
-                  label: 'Attendance',
-                  icon: Icons.event_note_rounded,
-                  color: AppTheme.accentTeal,
-                  onTap: () => context.push('/attendance'),
-                ),
-                _ActionCard(
-                  label: 'Fee Ledger',
-                  icon: Icons.receipt_long_rounded,
-                  color: AppTheme.accentPurple,
-                  onTap: () => context.push('/fees'),
-                ),
-                _ActionCard(
-                  label: 'Expenses',
-                  icon: Icons.account_balance_wallet_rounded,
-                  color: AppTheme.accentOrange,
-                  onTap: () => context.push('/expenses'),
-                ),
-                _ActionCard(
-                  label: 'Reports',
-                  icon: Icons.insights_rounded,
-                  color: AppTheme.accentPink,
-                  onTap: () => context.push('/reports'),
-                ),
-                _ActionCard(
-                  label: 'Coaches',
-                  icon: Icons.supervised_user_circle_rounded,
-                  color: AppTheme.infoBlue,
-                  onTap: () => context.push('/users'),
-                ),
-                _ActionCard(
-                  label: 'Batches',
-                  icon: Icons.layers_rounded,
-                  color: AppTheme.accentLime,
-                  onTap: () => context.push('/batches'),
-                ),
-                _ActionCard(
-                  label: 'Settings',
-                  icon: Icons.settings_rounded,
-                  color: AppTheme.textSecondary,
-                  onTap: () => context.push('/settings'),
-                ),
-              ],
-            ),
+            const SizedBox(height: AppTheme.space8),
           ],
         );
       },
     );
   }
 
-  Widget _buildSeedCard(BuildContext context, WidgetRef ref) {
+  Widget _buildNetProfitBanner(BuildContext context, double netProfit, NumberFormat currencyFormat) {
+    final theme = Theme.of(context);
+    final isProfit = netProfit >= 0;
+    final accentColor = isProfit ? AppTheme.accentLime : AppTheme.errorRed;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: AppTheme.space14),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space10),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.accentLime.withValues(alpha: 0.08),
-              AppTheme.darkCard,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: AppTheme.accentLime.withValues(alpha: 0.2),
-          ),
+          color: theme.cardTheme.color ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radius10),
+          border: Border.all(color: theme.colorScheme.outline, width: 0.8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+                border: Border.all(color: accentColor.withValues(alpha: 0.15), width: 0.5),
+              ),
+              child: Icon(Icons.account_balance_rounded, color: accentColor, size: 16),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Net Profit (P&L Summary)',
+                    style: AppTheme.caption.copyWith(fontSize: 10),
+                  ),
+                  const SizedBox(height: AppTheme.space2),
+                  Text(
+                    currencyFormat.format(netProfit),
+                    style: AppTheme.heading2.copyWith(
+                      color: accentColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space4),
+              decoration: BoxDecoration(
+                color: accentColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppTheme.radius6),
+              ),
+              child: Text(
+                isProfit ? 'PROFIT' : 'LOSS',
+                style: AppTheme.overline.copyWith(color: accentColor, fontSize: 8, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── SEED CARD ──────────────────────────────────────────────────
+
+  Widget _buildSeedCard(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.space12),
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.space14),
+        decoration: BoxDecoration(
+          color: theme.cardTheme.color ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
+          border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.15), width: 0.8),
         ),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.accentLime.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.rocket_launch_rounded, size: 32, color: AppTheme.accentLime),
+            Row(
+              children: [
+                Icon(Icons.rocket_launch_rounded, size: 18, color: AppTheme.accentLime),
+                const SizedBox(width: AppTheme.space8),
+                Text('Empty Database Detected', style: AppTheme.subtitle2),
+              ],
             ),
-            const SizedBox(height: 14),
-            const Text(
-              'Empty Database Detected',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            const Text(
+            const SizedBox(height: AppTheme.space8),
+            Text(
               'Seed mock data to explore the dashboard with batches, students, payments, and expenses.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+              style: AppTheme.caption.copyWith(height: 1.3),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.space12),
             SizedBox(
+              height: 38,
               width: double.infinity,
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.auto_fix_high_rounded, size: 18),
-                label: const Text('Seed Test Data'),
+                icon: const Icon(Icons.auto_fix_high_rounded, size: 14),
+                label: const Text('Seed Test Data', style: TextStyle(fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radius8)),
+                ),
                 onPressed: () async {
                   try {
                     final supabase = ref.read(supabaseClientProvider);
@@ -585,16 +567,8 @@ class DashboardScreen extends ConsumerWidget {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Row(
-                            children: [
-                              Icon(Icons.check_circle_outline, color: AppTheme.successGreen, size: 20),
-                              SizedBox(width: 12),
-                              Text('Mock data seeded successfully!'),
-                            ],
-                          ),
+                          content: Text('Mock data seeded successfully!', style: AppTheme.body2.copyWith(color: AppTheme.textPrimary)),
                           backgroundColor: AppTheme.darkCard,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       );
                     }
@@ -617,16 +591,29 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // COACH DASHBOARD
+  // ═══════════════════════════════════════════════════════════════════
+
   Widget _buildCoachDashboard(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(coachDashboardDataProvider);
     final profile = ref.watch(authControllerProvider).profile!;
 
     return dashboardAsync.when(
       loading: () => const Padding(
-        padding: EdgeInsets.all(48),
-        child: Center(child: CircularProgressIndicator(color: AppTheme.accentTeal, strokeWidth: 2.5)),
+        padding: EdgeInsets.all(AppTheme.space32),
+        child: Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(color: AppTheme.accentTeal, strokeWidth: 2.5),
+          ),
+        ),
       ),
-      error: (err, stack) => _buildErrorWidget(err.toString()),
+      error: (err, stack) => AppErrorState(
+        message: err.toString(),
+        onRetry: () => ref.invalidate(coachDashboardDataProvider),
+      ),
       data: (data) {
         final batch = data.batches.isNotEmpty ? data.batches.first : null;
         final isRestrictedCoach = profile.isCoach && !profile.isActive;
@@ -634,31 +621,32 @@ class DashboardScreen extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Restricted Warning Banner
             if (isRestrictedCoach) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: AppTheme.space12),
+                padding: const EdgeInsets.all(AppTheme.space12),
                 decoration: BoxDecoration(
-                  color: AppTheme.errorRed.withValues(alpha: 0.08),
-                  border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
-                  borderRadius: BorderRadius.circular(20),
+                  color: AppTheme.errorRed.withValues(alpha: 0.05),
+                  border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.15), width: 0.8),
+                  borderRadius: BorderRadius.circular(AppTheme.radius10),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.lock_rounded, color: AppTheme.errorRed, size: 28),
-                    SizedBox(width: 16),
+                    const Icon(Icons.lock_rounded, color: AppTheme.errorRed, size: 18),
+                    const SizedBox(width: AppTheme.space10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Account Restricted',
-                            style: TextStyle(color: AppTheme.errorRed, fontWeight: FontWeight.bold, fontSize: 15),
+                            style: AppTheme.subtitle2.copyWith(color: AppTheme.errorRed, fontSize: 12),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: AppTheme.space2),
                           Text(
-                            'An administrator has temporarily suspended modifications on your account. You can view rosters but cannot mark attendance or add students.',
-                            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.4),
+                            'An administrator has suspended active modifications. You have view-only access.',
+                            style: AppTheme.caption.copyWith(fontSize: 10, height: 1.3),
                           ),
                         ],
                       ),
@@ -667,145 +655,113 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
             ],
-            // Batch Info Card
-            _SectionHeader(
-              title: data.batches.length > 1 ? 'Your Batches' : 'Your Batch',
+
+            // Batch Info
+            AppSectionHeader(
+              title: data.batches.length > 1 ? 'YOUR BATCHES' : 'YOUR BATCH',
               icon: Icons.groups_rounded,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space8),
+
             if (data.batches.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: AppTheme.premiumCard(accentColor: AppTheme.accentTeal),
-                child: Column(
-                  children: [
-                    Icon(Icons.info_outline_rounded, size: 40, color: AppTheme.textMuted),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Not assigned to any batch yet.',
-                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Please contact the administrator.',
-                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                    ),
-                  ],
-                ),
+              const AppEmptyState(
+                icon: Icons.info_outline_rounded,
+                title: 'Not assigned to any batch yet',
+                subtitle: 'Please contact the administrator to get assigned to a batch.',
               )
             else
               ...data.batches.map((batch) {
                 final batchStudentsCount = data.studentsPerBatch[batch.id] ?? 0;
                 final isCricket = batch.sport == 'cricket';
                 final accentColor = isCricket ? AppTheme.accentLime : AppTheme.accentTeal;
+                final gradient = isCricket ? AppTheme.limeGradient : AppTheme.tealGradient;
+                final capacityRatio = batch.capacity > 0 ? batchStudentsCount / batch.capacity : 0.0;
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(20),
-                  decoration: AppTheme.premiumCard(accentColor: accentColor),
+                  margin: const EdgeInsets.only(bottom: AppTheme.space8),
+                  padding: const EdgeInsets.all(AppTheme.space12),
+                  decoration: AppTheme.accentCard(accentColor: accentColor, borderRadius: AppTheme.radius12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              gradient: isCricket ? AppTheme.limeGradient : AppTheme.tealGradient,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              isCricket ? Icons.sports_cricket : Icons.sports_soccer,
-                              size: 22,
-                              color: Colors.black,
-                            ),
+                          AppGradientIcon(
+                            icon: isCricket ? Icons.sports_cricket : Icons.sports_soccer,
+                            gradient: gradient,
+                            size: 16,
+                            padding: AppTheme.space6,
                           ),
-                          const SizedBox(width: 14),
+                          const SizedBox(width: AppTheme.space10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SelectableText(
-                                  batch.name,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: accentColor.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    batch.sport.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: accentColor,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
+                                Text(batch.name, style: AppTheme.subtitle1.copyWith(fontSize: 14)),
+                                const SizedBox(height: AppTheme.space2),
+                                Text(
+                                  batch.sport.toUpperCase(),
+                                  style: AppTheme.overline.copyWith(color: accentColor, fontSize: 8),
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-                      const Divider(color: AppTheme.darkBorder),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppTheme.space10),
+                      // Capacity progress bar
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Students enrolled in batch', style: TextStyle(color: AppTheme.textSecondary)),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: accentColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: SelectableText(
-                              '$batchStudentsCount / ${batch.capacity}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                                color: accentColor,
-                              ),
-                            ),
+                          Text('Roster Capacity', style: AppTheme.caption.copyWith(fontSize: 10)),
+                          const Spacer(),
+                          Text(
+                            '$batchStudentsCount / ${batch.capacity}',
+                            style: AppTheme.caption.copyWith(color: accentColor, fontWeight: FontWeight.bold, fontSize: 10),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: AppTheme.space4),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppTheme.radius6),
+                        child: LinearProgressIndicator(
+                          value: capacityRatio.clamp(0.0, 1.0),
+                          minHeight: 4,
+                          backgroundColor: AppTheme.darkBorder,
+                          valueColor: AlwaysStoppedAnimation(accentColor),
+                        ),
                       ),
                     ],
                   ),
                 );
               }),
-            const SizedBox(height: 28),
+
+            const SizedBox(height: AppTheme.space16),
 
             // Coach Actions
-            const _SectionHeader(title: 'Actions', icon: Icons.bolt_rounded),
-            const SizedBox(height: 12),
+            const AppSectionHeader(title: 'ACTIONS', icon: Icons.bolt_rounded),
+            const SizedBox(height: AppTheme.space8),
             GridView.count(
               crossAxisCount: 3,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.82,
+              mainAxisSpacing: AppTheme.space8,
+              crossAxisSpacing: AppTheme.space8,
+              childAspectRatio: 1.15,
               children: [
                 _ActionCard(
-                  label: isRestrictedCoach ? 'Mark Attendance\n(Restricted)' : 'Mark\nAttendance',
+                  label: 'Attendance',
                   icon: Icons.checklist_rounded,
                   color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentTeal,
                   onTap: (batch == null || isRestrictedCoach) ? null : () => context.push('/attendance'),
                 ),
                 _ActionCard(
-                  label: 'View\nStudents',
+                  label: 'View Students',
                   icon: Icons.people_alt_rounded,
                   color: AppTheme.accentLime,
                   onTap: batch == null ? null : () => context.push('/students'),
                 ),
                 _ActionCard(
-                  label: isRestrictedCoach ? 'Add Student\n(Restricted)' : 'Add\nStudent',
+                  label: 'Add Student',
                   icon: Icons.person_add_alt_1_rounded,
                   color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentPurple,
                   onTap: (batch == null || isRestrictedCoach) ? null : () => context.push('/students/new'),
@@ -817,65 +773,18 @@ class DashboardScreen extends ConsumerWidget {
       },
     );
   }
-
-  Widget _buildErrorWidget(String error) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        color: AppTheme.errorRed.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.error_outline_rounded, size: 36, color: AppTheme.errorRed),
-          const SizedBox(height: 12),
-          SelectableText(
-            'Error loading dashboard: $error',
-            style: const TextStyle(color: AppTheme.errorRed, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ─── Reusable Components ─────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _SectionHeader({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppTheme.textMuted),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textSecondary,
-            letterSpacing: 0.3,
-          ),
-        ),
-      ],
-    );
-  }
-}
+// ═══════════════════════════════════════════════════════════════════
+// REUSABLE PRIVATE WIDGETS
+// ═══════════════════════════════════════════════════════════════════
 
 class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
   final LinearGradient gradient;
-  final Color iconBgColor;
+  final Color accentColor;
   final bool isHighlighted;
 
   const _StatCard({
@@ -883,69 +792,56 @@ class _StatCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.gradient,
-    required this.iconBgColor,
+    required this.accentColor,
     this.isHighlighted = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTheme.space10),
       decoration: BoxDecoration(
-        color: AppTheme.darkCard,
-        borderRadius: BorderRadius.circular(18),
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radius12),
         border: Border.all(
           color: isHighlighted
-              ? iconBgColor.withValues(alpha: 0.3)
-              : AppTheme.darkBorder,
+              ? accentColor.withValues(alpha: 0.2)
+              : theme.colorScheme.outline,
+          width: 0.8,
         ),
-        boxShadow: [
-          if (isHighlighted)
-            BoxShadow(
-              color: iconBgColor.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-        ],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(AppTheme.space4),
                 decoration: BoxDecoration(
                   gradient: gradient,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppTheme.radius6),
                 ),
-                child: Icon(icon, size: 16, color: Colors.black),
+                child: Icon(icon, size: 12, color: Colors.black),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.space6),
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: AppTheme.labelSmall.copyWith(fontSize: 9),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          SelectableText(
+          const SizedBox(height: AppTheme.space6),
+          Text(
             value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
+            style: AppTheme.statValue.copyWith(fontSize: 15),
             maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -968,36 +864,56 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isDisabled = onTap == null;
+    final cardBg = theme.cardTheme.color ?? theme.colorScheme.surface;
+
     return Material(
-      color: Colors.transparent,
+      color: cardBg,
+      borderRadius: BorderRadius.circular(AppTheme.radius12),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        mouseCursor: onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
-        borderRadius: BorderRadius.circular(18),
+        mouseCursor: isDisabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+        splashColor: color.withValues(alpha: isDark ? 0.08 : 0.12),
+        highlightColor: color.withValues(alpha: isDark ? 0.04 : 0.06),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space10),
           decoration: BoxDecoration(
-            color: AppTheme.darkCard,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppTheme.darkBorder),
+            borderRadius: BorderRadius.circular(AppTheme.radius12),
+            border: Border.all(color: theme.colorScheme.outline, width: 0.8),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(AppTheme.space6),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  color: color.withValues(alpha: isDisabled ? 0.04 : 0.08),
+                  borderRadius: BorderRadius.circular(AppTheme.radius10),
+                  border: Border.all(
+                    color: color.withValues(alpha: isDisabled ? 0.05 : 0.15),
+                    width: 0.5,
+                  ),
                 ),
-                child: Icon(icon, size: 24, color: color),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: isDisabled ? (isDark ? AppTheme.textMuted : AppTheme.textMutedLight) : color,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppTheme.space8),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                style: AppTheme.subtitle2.copyWith(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: isDisabled
+                      ? (isDark ? AppTheme.textMuted : AppTheme.textMutedLight)
+                      : (theme.textTheme.bodyLarge?.color ?? AppTheme.textPrimary),
+                  letterSpacing: -0.1,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,

@@ -92,13 +92,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         content: Row(
           children: [
             const Icon(Icons.check_circle_outline, color: AppTheme.successGreen, size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
+            const SizedBox(width: AppTheme.space12),
+            Expanded(child: Text(message, style: AppTheme.body2.copyWith(color: AppTheme.textPrimary))),
           ],
         ),
         backgroundColor: AppTheme.darkCard,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radius12)),
       ),
     );
   }
@@ -117,20 +117,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenSize.width > 600 ? screenSize.width * 0.15 : 20,
-                  vertical: 32,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space20,
+                  vertical: AppTheme.space32,
                 ),
                 child: SlideTransition(
                   position: _formSlideAnim,
                   child: FadeTransition(
                     opacity: _formFadeAnim,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
+                      constraints: const BoxConstraints(maxWidth: 460),
                       child: Column(
                         children: [
                           _buildHeader(roleColor),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: AppTheme.space32),
                           _buildFormCard(authState, roleColor),
                         ],
                       ),
@@ -159,8 +159,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             );
           },
           child: Container(
-            width: 88,
-            height: 88,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -172,13 +172,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               ),
               shape: BoxShape.circle,
               border: Border.all(
-                color: roleColor.withValues(alpha: 0.3),
-                width: 2,
+                color: roleColor.withValues(alpha: 0.25),
+                width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: roleColor.withValues(alpha: 0.2),
-                  blurRadius: 30,
+                  color: roleColor.withValues(alpha: 0.15),
+                  blurRadius: 40,
                   spreadRadius: 2,
                 ),
               ],
@@ -187,36 +187,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               _selectedRole == 'admin'
                   ? Icons.shield_outlined
                   : Icons.sports_soccer_outlined,
-              size: 40,
+              size: 36,
               color: roleColor,
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: AppTheme.space20),
         ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [Colors.white, roleColor.withValues(alpha: 0.8)],
           ).createShader(bounds),
-          child: const Text(
+          child: Text(
             'Sports Academy',
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
+            style: AppTheme.heading1.copyWith(
+              fontSize: 32,
               color: Colors.white,
               letterSpacing: -1,
-              height: 1.1,
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
+        const SizedBox(height: AppTheme.space8),
+        Text(
           'Welcome back! Sign in to continue',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 15,
-            color: AppTheme.textSecondary,
-            letterSpacing: 0.2,
-          ),
+          style: AppTheme.body2.copyWith(letterSpacing: 0.2),
         ),
       ],
     );
@@ -224,10 +218,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
   Widget _buildFormCard(AuthStateData authState, Color roleColor) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppTheme.space24),
       decoration: BoxDecoration(
         color: AppTheme.darkCard.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppTheme.radius24),
         border: Border.all(
           color: AppTheme.darkBorder.withValues(alpha: 0.6),
           width: 1,
@@ -251,7 +245,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildRoleSwitcher(roleColor),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.space24),
             if (authState.errorMessage != null)
               _buildErrorBanner(authState.errorMessage!),
             _buildTextField(
@@ -269,28 +263,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.space16),
             _buildPasswordField(),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.space8),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: _showForgotPasswordDialog,
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space4, vertical: AppTheme.space4),
                   foregroundColor: roleColor,
                 ),
                 child: Text(
                   'Forgot password?',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: AppTheme.caption.copyWith(
                     color: roleColor.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.space20),
             _buildSubmitButton(authState, roleColor),
           ],
         ),
@@ -300,11 +293,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
   Widget _buildRoleSwitcher(Color roleColor) {
     return Container(
-      height: 52,
-      padding: const EdgeInsets.all(4),
+      height: 50,
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: AppTheme.darkBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.radius14),
         border: Border.all(color: AppTheme.darkBorder, width: 1),
       ),
       child: Row(
@@ -316,7 +309,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             color: AppTheme.accentLime,
             onTap: () => setState(() => _selectedRole = 'admin'),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 3),
           _buildRoleTab(
             label: 'Coach Portal',
             icon: Icons.sports_outlined,
@@ -342,7 +335,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         child: GestureDetector(
           onTap: onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
+            duration: AppTheme.durationNormal,
             curve: Curves.easeOutCubic,
             alignment: Alignment.center,
             decoration: BoxDecoration(
@@ -353,11 +346,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       end: Alignment.bottomRight,
                     )
                   : null,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppTheme.radius12),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: color.withValues(alpha: 0.3),
+                        color: color.withValues(alpha: 0.25),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -369,17 +362,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               children: [
                 Icon(
                   icon,
-                  size: 16,
+                  size: 15,
                   color: isSelected ? Colors.black : AppTheme.textMuted,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppTheme.space6),
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: AppTheme.labelSmall.copyWith(
                     fontWeight: FontWeight.w700,
                     color: isSelected ? Colors.black : AppTheme.textMuted,
-                    letterSpacing: 0.2,
                   ),
                 ),
               ],
@@ -402,7 +393,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       controller: controller,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      style: AppTheme.body1,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, size: 20),
@@ -415,13 +406,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     return TextFormField(
       controller: _passwordController,
       obscureText: _obscurePassword,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+      style: AppTheme.body1,
       decoration: InputDecoration(
         labelText: 'Password',
         prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
         suffixIcon: IconButton(
           icon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
+            duration: AppTheme.durationFast,
             child: Icon(
               _obscurePassword
                   ? Icons.visibility_outlined
@@ -445,35 +436,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
   Widget _buildErrorBanner(String message) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: AppTheme.space20),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.space14, horizontal: AppTheme.space16),
         decoration: BoxDecoration(
-          color: AppTheme.errorRed.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
+          color: AppTheme.errorRed.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(AppTheme.radius14),
           border: Border.all(
-            color: AppTheme.errorRed.withValues(alpha: 0.3),
+            color: AppTheme.errorRed.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(AppTheme.space4),
               decoration: BoxDecoration(
-                color: AppTheme.errorRed.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                color: AppTheme.errorRed.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppTheme.radius8),
               ),
               child: const Icon(Icons.error_outline_rounded,
                   color: AppTheme.errorRed, size: 18),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppTheme.space12),
             Expanded(
               child: SelectableText(
                 message,
-                style: const TextStyle(
+                style: AppTheme.caption.copyWith(
                   color: AppTheme.errorRed,
-                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                   height: 1.4,
                 ),
@@ -487,10 +477,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
   Widget _buildSubmitButton(AuthStateData authState, Color roleColor) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      height: 56,
+      duration: AppTheme.durationNormal,
+      height: 54,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.radius16),
         gradient: authState.isLoading
             ? null
             : LinearGradient(
@@ -502,7 +492,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             ? null
             : [
                 BoxShadow(
-                  color: roleColor.withValues(alpha: 0.35),
+                  color: roleColor.withValues(alpha: 0.3),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -514,7 +504,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppTheme.radius16),
           ),
         ),
         child: authState.isLoading
@@ -529,20 +519,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.login_rounded,
-                    size: 20,
-                    color: Colors.black,
-                  ),
-                  const SizedBox(width: 10),
+                  const Icon(Icons.login_rounded, size: 20, color: Colors.black),
+                  const SizedBox(width: AppTheme.space10),
                   Text(
                     'Sign In',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black,
-                      letterSpacing: 0.3,
-                    ),
+                    style: AppTheme.buttonText.copyWith(color: Colors.black),
                   ),
                 ],
               ),
@@ -555,24 +536,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.lock_reset_rounded, color: AppTheme.accentTeal, size: 24),
-            SizedBox(width: 12),
-            Text('Reset Password', style: TextStyle(fontSize: 18)),
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.accentTeal.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+              ),
+              child: const Icon(Icons.lock_reset_rounded, color: AppTheme.accentTeal, size: 20),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Text('Reset Password', style: AppTheme.heading3),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Enter your email address and we\'ll send you a password reset link.',
-              style: TextStyle(color: AppTheme.textSecondary, height: 1.5),
+              style: AppTheme.body2.copyWith(height: 1.5),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.space16),
             TextField(
               controller: resetEmailController,
               keyboardType: TextInputType.emailAddress,
+              style: AppTheme.body1,
               decoration: const InputDecoration(
                 labelText: 'Email Address',
                 prefixIcon: Icon(Icons.email_outlined, size: 20),
@@ -596,13 +585,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text(
+                        content: Text(
                           'Password reset email sent! Check your inbox.',
+                          style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
                         ),
                         backgroundColor: AppTheme.darkCard,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppTheme.radius12),
                         ),
                       ),
                     );
@@ -702,7 +692,7 @@ class _BgPainter extends CustomPainter {
 
     // Subtle grid pattern
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.015)
+      ..color = Colors.white.withValues(alpha: 0.012)
       ..strokeWidth = 0.5;
 
     for (double x = 0; x < size.width; x += 60) {

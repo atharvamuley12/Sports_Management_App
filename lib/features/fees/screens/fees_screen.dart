@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/models/payment.dart';
+import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/payment_repository.dart';
 import '../../../core/utils/error_handler.dart';
@@ -36,12 +37,9 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
         children: [
           // Search Bar
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search student by name...',
-                prefixIcon: Icon(Icons.search),
-              ),
+            padding: const EdgeInsets.all(AppTheme.space16),
+            child: AppSearchBar(
+              hint: 'Search student by name...',
               onChanged: (val) {
                 setState(() {
                   _searchQuery = val.toLowerCase();
@@ -51,16 +49,16 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
+              color: AppTheme.accentLime,
+              backgroundColor: AppTheme.darkCard,
               onRefresh: () async {
                 ref.invalidate(studentDuesProvider);
               },
               child: duesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text('Error loading dues ledger: $err'),
-                  ),
+                loading: () => const AppLoadingState(itemCount: 4, itemHeight: 140),
+                error: (err, stack) => AppErrorState(
+                  message: err.toString(),
+                  onRetry: () => ref.invalidate(studentDuesProvider),
                 ),
                 data: (duesList) {
                   final filtered = duesList.where((d) => d.name.toLowerCase().contains(_searchQuery)).toList();
@@ -69,8 +67,12 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: const [
-                        SizedBox(height: 100),
-                        Center(child: Text('No student records found.')),
+                        SizedBox(height: 80),
+                        AppEmptyState(
+                          icon: Icons.payments_rounded,
+                          title: 'No student records found',
+                          subtitle: 'All students are up to date or no matches exist.',
+                        ),
                       ],
                     );
                   }
@@ -78,15 +80,15 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                   return ListView.builder(
                     itemCount: filtered.length,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
                     itemBuilder: (context, index) {
                       final dues = filtered[index];
                       final hasDues = dues.pendingDues > 0;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12.0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppTheme.space12),
+                        child: AppCard(
+                          padding: const EdgeInsets.all(AppTheme.space16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -94,67 +96,93 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
-                                    child: SelectableText(
+                                    child: Text(
                                       dues.name,
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                                      style: AppTheme.subtitle1,
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppTheme.space10,
+                                      vertical: AppTheme.space4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: hasDues ? AppTheme.errorRed.withValues(alpha: 0.1) : AppTheme.successGreen.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: hasDues ? AppTheme.errorRed.withValues(alpha: 0.3) : AppTheme.successGreen.withValues(alpha: 0.3)),
+                                      color: hasDues 
+                                          ? AppTheme.errorRed.withValues(alpha: 0.08) 
+                                          : AppTheme.successGreen.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(AppTheme.radius8),
+                                      border: Border.all(
+                                        color: hasDues 
+                                            ? AppTheme.errorRed.withValues(alpha: 0.15) 
+                                            : AppTheme.successGreen.withValues(alpha: 0.15),
+                                        width: 0.5,
+                                      ),
                                     ),
                                     child: Text(
                                       hasDues
                                           ? 'DUE: ${currencyFormat.format(dues.pendingDues)}'
                                           : 'PAID / NO DUES',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
+                                      style: AppTheme.overline.copyWith(
+                                        fontSize: 10,
                                         color: hasDues ? AppTheme.errorRed : AppTheme.successGreen,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppTheme.space8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  SelectableText(
+                                  Text(
                                     'Monthly Fee: ${currencyFormat.format(dues.monthlyFee)}',
-                                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                    style: AppTheme.caption,
                                   ),
-                                  SelectableText(
+                                  Text(
                                     'Total Paid: ${currencyFormat.format(dues.totalPaid)}',
-                                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                    style: AppTheme.caption,
                                   ),
                                 ],
                               ),
-                              const Divider(height: 20),
+                              const Divider(height: AppTheme.space24),
                               Row(
                                 children: [
                                   Expanded(
-                                    child: ElevatedButton.icon(
-                                      icon: const Icon(Icons.add_card_outlined, size: 18),
-                                      label: const Text('Record Fee', style: TextStyle(fontSize: 13)),
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                    child: SizedBox(
+                                      height: 44,
+                                      child: ElevatedButton.icon(
+                                        icon: const Icon(Icons.add_card_outlined, size: 16),
+                                        label: const Text('Record Fee'),
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 0),
+                                          backgroundColor: AppTheme.accentLime,
+                                          foregroundColor: Colors.black,
+                                          textStyle: AppTheme.buttonText.copyWith(fontSize: 13),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(AppTheme.radius12),
+                                          ),
+                                        ),
+                                        onPressed: () => _showRecordPaymentDialog(dues),
                                       ),
-                                      onPressed: () => _showRecordPaymentDialog(dues),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: AppTheme.space12),
                                   Expanded(
-                                    child: OutlinedButton.icon(
-                                      icon: const Icon(Icons.history_rounded, size: 18),
-                                      label: const Text('History', style: TextStyle(fontSize: 13)),
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                    child: SizedBox(
+                                      height: 44,
+                                      child: OutlinedButton.icon(
+                                        icon: const Icon(Icons.history_rounded, size: 16),
+                                        label: const Text('History'),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 0),
+                                          textStyle: AppTheme.buttonText.copyWith(fontSize: 13),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(AppTheme.radius12),
+                                          ),
+                                        ),
+                                        onPressed: () => _showHistoryBottomSheet(dues),
                                       ),
-                                      onPressed: () => _showHistoryBottomSheet(dues),
                                     ),
                                   ),
                                 ],
@@ -195,6 +223,19 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
               initialDate: paymentDate,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: const ColorScheme.dark(
+                      primary: AppTheme.accentLime,
+                      onPrimary: Colors.black,
+                      surface: AppTheme.darkCard,
+                      onSurface: AppTheme.textPrimary,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
             );
             if (picked != null) {
               setState(() {
@@ -228,7 +269,13 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
               if (mounted) {
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Payment recorded successfully!')),
+                  SnackBar(
+                    content: Text(
+                      'Payment recorded successfully!',
+                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                    ),
+                    backgroundColor: AppTheme.darkCard,
+                  ),
                 );
               }
             } catch (e) {
@@ -243,11 +290,36 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
           }
 
           return AlertDialog(
-            title: Text('Record Fee: ${dues.name}'),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.space8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radius10),
+                  ),
+                  child: const Icon(Icons.add_card_rounded, color: AppTheme.accentLime, size: 20),
+                ),
+                const SizedBox(width: AppTheme.space12),
+                Expanded(
+                  child: Text(
+                    'Record Fee: ${dues.name}',
+                    style: AppTheme.heading3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
             content: _isSaving
                 ? const SizedBox(
                     height: 100,
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                      ),
+                    ),
                   )
                 : Form(
                     key: formKey,
@@ -259,6 +331,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                           TextFormField(
                             controller: amountController,
                             keyboardType: TextInputType.number,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Amount Paid (₹) *'),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Enter amount';
@@ -266,7 +339,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           // Payment Date
                           InkWell(
                             onTap: pickDate,
@@ -274,18 +347,22 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'Payment Date',
-                                suffixIcon: Icon(Icons.calendar_today),
+                                suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
                               ),
-                              child: Text(DateFormat('dd MMMM yyyy').format(paymentDate)),
+                              child: Text(
+                                DateFormat('dd MMMM yyyy').format(paymentDate),
+                                style: AppTheme.body1,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           // Month and Year Row
                           Row(
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<int>(
                                   value: selectedMonth,
+                                  style: AppTheme.body1,
                                   decoration: const InputDecoration(labelText: 'Month'),
                                   items: List.generate(12, (i) => i + 1)
                                       .map((m) => DropdownMenuItem(
@@ -298,10 +375,11 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: AppTheme.space12),
                               Expanded(
                                 child: DropdownButtonFormField<int>(
                                   value: selectedYear,
+                                  style: AppTheme.body1,
                                   decoration: const InputDecoration(labelText: 'Year'),
                                   items: [selectedYear - 1, selectedYear, selectedYear + 1]
                                       .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
@@ -313,10 +391,11 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppTheme.space12),
                           // Payment Mode
                           DropdownButtonFormField<String>(
                             value: selectedMode,
+                            style: AppTheme.body1,
                             decoration: const InputDecoration(labelText: 'Payment Mode'),
                             items: const [
                               DropdownMenuItem(value: 'upi', child: Text('UPI')),
@@ -337,6 +416,10 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
               ),
               ElevatedButton(
                 onPressed: _isSaving ? null : submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentLime,
+                  foregroundColor: Colors.black,
+                ),
                 child: const Text('Save'),
               ),
             ],
@@ -350,6 +433,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppTheme.darkCard,
       builder: (ctx) {
         final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
         return DraggableScrollableSheet(
@@ -358,82 +442,96 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
           maxChildSize: 0.9,
           expand: false,
           builder: (context, scrollController) {
-            return Container(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[600],
-                        borderRadius: BorderRadius.circular(2),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppTheme.space8),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.darkBorderLight,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.space16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Payment History',
+                        style: AppTheme.heading3,
                       ),
-                    ),
+                      const SizedBox(height: AppTheme.space2),
+                      Text(
+                        dues.name,
+                        style: AppTheme.caption,
+                      ),
+                    ],
                   ),
-                  Text(
-                    'Payment History',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    dues.name,
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                  ),
-                  const Divider(height: 24),
-                  Expanded(
-                    child: FutureBuilder<List<Payment>>(
-                      future: ref.read(paymentRepositoryProvider).getStudentPayments(dues.studentId),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        if (snapshot.hasError) {
-                          return Center(child: Text('Error: ${snapshot.error}'));
-                        }
-                        final payments = snapshot.data ?? [];
-                        if (payments.isEmpty) {
-                          return const Center(child: Text('No recorded payments found for this student.'));
-                        }
-                        return ListView.separated(
-                          controller: scrollController,
-                          itemCount: payments.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final p = payments[index];
-                            final monthName = DateFormat('MMMM').format(DateTime(2020, p.month));
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.successGreen.withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.arrow_upward_rounded, color: AppTheme.successGreen, size: 20),
-                              ),
-                              title: Text(
-                                '${currencyFormat.format(p.amount)} - ${p.mode.toUpperCase()}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              subtitle: Text(
-                                'For $monthName ${p.year}',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                              ),
-                              trailing: Text(
-                                DateFormat('dd MMM yyyy').format(p.paymentDate),
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-                              ),
-                            );
-                          },
+                ),
+                const Divider(height: AppTheme.space24),
+                Expanded(
+                  child: FutureBuilder<List<Payment>>(
+                    future: ref.read(paymentRepositoryProvider).getStudentPayments(dues.studentId),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime)));
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}', style: AppTheme.body2.copyWith(color: AppTheme.errorRed)));
+                      }
+                      final payments = snapshot.data ?? [];
+                      if (payments.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'No recorded payments found.',
+                            style: AppTheme.body2.copyWith(color: AppTheme.textMuted),
+                          ),
                         );
-                      },
-                    ),
+                      }
+                      return ListView.separated(
+                        controller: scrollController,
+                        itemCount: payments.length,
+                        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16),
+                        separatorBuilder: (context, index) => const Divider(height: 1, color: AppTheme.darkBorderSubtle),
+                        itemBuilder: (context, index) {
+                          final p = payments[index];
+                          final monthName = DateFormat('MMMM').format(DateTime(2020, p.month));
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Container(
+                              padding: const EdgeInsets.all(AppTheme.space8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.successGreen.withValues(alpha: 0.08),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.successGreen.withValues(alpha: 0.15)),
+                              ),
+                              child: const Icon(Icons.arrow_upward_rounded, color: AppTheme.successGreen, size: 18),
+                            ),
+                            title: Text(
+                              '${currencyFormat.format(p.amount)} - ${p.mode.toUpperCase()}',
+                              style: AppTheme.subtitle2,
+                            ),
+                            subtitle: Text(
+                              'For $monthName ${p.year}',
+                              style: AppTheme.caption,
+                            ),
+                            trailing: Text(
+                              DateFormat('dd MMM yyyy').format(p.paymentDate),
+                              style: AppTheme.caption,
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           },
         );
