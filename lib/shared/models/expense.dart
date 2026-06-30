@@ -1,3 +1,5 @@
+import '../../core/utils/date_utils.dart';
+
 class Expense {
   final String id;
   final String category; // 'cricket_pitch' | 'football_ground' | 'equipment' | 'shed_construction' | 'maintenance' | 'salary' | 'misc'
@@ -24,7 +26,7 @@ class Expense {
       id: json['id'] as String,
       category: json['category'] as String,
       amount: (json['amount'] as num).toDouble(),
-      date: DateTime.parse(json['date'] as String),
+      date: DateUtilsHelper.parseSqlDate(json['date'] as String),
       description: json['description'] as String?,
       receiptUrl: json['receipt_url'] as String?,
       recordedBy: json['recorded_by'] as String,

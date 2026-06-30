@@ -13,10 +13,17 @@ import '../../students/repositories/batch_repository.dart';
 import '../../students/repositories/student_repository.dart';
 import '../repositories/attendance_repository.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/utils/date_utils.dart';
 
 final attendanceBatchesProvider = FutureProvider.autoDispose<List<Batch>>((ref) async {
   final batchRepo = ref.watch(batchRepositoryProvider);
-  return await batchRepo.getBatches();
+  final authState = ref.watch(authControllerProvider);
+  final profile = authState.profile;
+  final allBatches = await batchRepo.getBatches();
+  if (profile != null && profile.isCoach) {
+    return allBatches.where((b) => b.coachId == profile.id).toList();
+  }
+  return allBatches;
 });
 
 class AttendanceScreen extends ConsumerStatefulWidget {
@@ -129,14 +136,22 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.accentLime,
-              onPrimary: Colors.black,
-              surface: AppTheme.darkCard,
-              onSurface: AppTheme.textPrimary,
-            ),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: AppTheme.accentLime,
+                    onPrimary: Colors.black,
+                    surface: AppTheme.darkCard,
+                    onSurface: AppTheme.textPrimary,
+                  )
+                : const ColorScheme.light(
+                    primary: AppTheme.accentLimeDark,
+                    onPrimary: Colors.white,
+                    surface: AppTheme.lightCard,
+                    onSurface: AppTheme.textPrimaryLight,
+                  ),
           ),
           child: child!,
         );
@@ -181,9 +196,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
           SnackBar(
             content: Text(
               'Attendance recorded successfully!',
-              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+              style: AppTheme.body2.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.textPrimary
+                    : AppTheme.textPrimaryLight,
+              ),
             ),
-            backgroundColor: AppTheme.darkCard,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
           ),
         );
         _loadStudentsAndAttendance();
@@ -221,8 +240,25 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
           .from('attendance')
           .select('id, date, status, marked_by, students!inner(name, batch_id)');
 
-      if (_historyBatchId != null) {
-        query = query.eq('students.batch_id', _historyBatchId!);
+      final profile = ref.read(authControllerProvider).profile!;
+      if (profile.isCoach) {
+        final coachBatches = ref.read(attendanceBatchesProvider).value ?? [];
+        final coachBatchIds = coachBatches.map((b) => b.id).toList();
+        if (_historyBatchId != null) {
+          query = query.eq('students.batch_id', _historyBatchId!);
+        } else if (coachBatchIds.isNotEmpty) {
+          query = query.inFilter('students.batch_id', coachBatchIds);
+        } else {
+          setState(() {
+            _historyLogs = [];
+            _isHistoryLoading = false;
+          });
+          return;
+        }
+      } else {
+        if (_historyBatchId != null) {
+          query = query.eq('students.batch_id', _historyBatchId!);
+        }
       }
       if (_historyDate != null) {
         final dateStr = "${_historyDate!.year.toString().padLeft(4, '0')}-${_historyDate!.month.toString().padLeft(2, '0')}-${_historyDate!.day.toString().padLeft(2, '0')}";
@@ -264,9 +300,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
           SnackBar(
             content: Text(
               'Status updated successfully!',
-              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+              style: AppTheme.body2.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.textPrimary
+                    : AppTheme.textPrimaryLight,
+              ),
             ),
-            backgroundColor: AppTheme.darkCard,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
           ),
         );
       }
@@ -366,14 +406,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
 
                     return DropdownButtonFormField<String>(
                       value: _selectedBatchId,
-                      style: AppTheme.body1,
+                      style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Select Batch'),
                       items: batches.map(
                         (b) => DropdownMenuItem(value: b.id, child: Text(b.name)),
                       ).toList(),
-                      onChanged: profile.isCoach
-                          ? null
-                          : (val) {
+                      onChanged: (val) {
                               setState(() {
                                 _selectedBatchId = val;
                               });
@@ -545,6 +583,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
   }
 
   Widget _buildHistoryLogTab(AsyncValue<List<Batch>> batchesAsync, Profile profile) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Padding(
@@ -564,14 +603,22 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
                             firstDate: DateTime(2020),
                             lastDate: DateTime.now(),
                             builder: (context, child) {
+                              final isDark = Theme.of(context).brightness == Brightness.dark;
                               return Theme(
                                 data: Theme.of(context).copyWith(
-                                  colorScheme: const ColorScheme.dark(
-                                    primary: AppTheme.accentLime,
-                                    onPrimary: Colors.black,
-                                    surface: AppTheme.darkCard,
-                                    onSurface: AppTheme.textPrimary,
-                                  ),
+                                  colorScheme: isDark
+                                      ? const ColorScheme.dark(
+                                          primary: AppTheme.accentLime,
+                                          onPrimary: Colors.black,
+                                          surface: AppTheme.darkCard,
+                                          onSurface: AppTheme.textPrimary,
+                                        )
+                                      : const ColorScheme.light(
+                                          primary: AppTheme.accentLimeDark,
+                                          onPrimary: Colors.white,
+                                          surface: AppTheme.lightCard,
+                                          onSurface: AppTheme.textPrimaryLight,
+                                        ),
                                 ),
                                 child: child!,
                               );
@@ -613,15 +660,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
                   data: (batches) {
                     return DropdownButtonFormField<String>(
                       value: _historyBatchId,
-                      style: AppTheme.body1,
+                      style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Filter Batch'),
                       items: [
                         const DropdownMenuItem<String>(value: null, child: Text('All Batches')),
                         ...batches.map((b) => DropdownMenuItem(value: b.id, child: Text(b.name))),
                       ],
-                      onChanged: profile.isCoach
-                          ? null
-                          : (val) {
+                      onChanged: (val) {
                               setState(() {
                                 _historyBatchId = val;
                               });
@@ -661,8 +706,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
                       itemBuilder: (context, idx) {
                         final log = _historyLogs[idx];
                         final studentName = (log['students'] as Map<String, dynamic>)['name'] as String;
-                        final dateStr = DateFormat('dd MMM yyyy').format(DateTime.parse(log['date'] as String));
-                        final isPresent = log['status'] == 'present';
+                         final dateStr = DateFormat('dd MMM yyyy').format(DateUtilsHelper.parseSqlDate(log['date'] as String));
+                         final isPresent = log['status'] == 'present';
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: AppTheme.space8),
@@ -679,11 +724,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
                                       const SizedBox(height: AppTheme.space4),
                                       Row(
                                         children: [
-                                          const Icon(Icons.event_rounded, size: 12, color: AppTheme.textMuted),
+                                          Icon(Icons.event_rounded, size: 12, color: isDark ? AppTheme.textMuted : AppTheme.textMutedLight),
                                           const SizedBox(width: AppTheme.space4),
                                           Text(
                                             'Date: $dateStr',
-                                            style: AppTheme.caption,
+                                            style: AppTheme.caption.copyWith(
+                                              color: isDark ? AppTheme.textMuted : AppTheme.textMutedLight,
+                                            ),
                                           ),
                                         ],
                                       ),

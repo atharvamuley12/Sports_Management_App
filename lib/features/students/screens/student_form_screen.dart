@@ -93,14 +93,22 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.accentLime,
-              onPrimary: Colors.black,
-              surface: AppTheme.darkCard,
-              onSurface: AppTheme.textPrimary,
-            ),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: AppTheme.accentLime,
+                    onPrimary: Colors.black,
+                    surface: AppTheme.darkCard,
+                    onSurface: AppTheme.textPrimary,
+                  )
+                : const ColorScheme.light(
+                    primary: AppTheme.accentLimeDark,
+                    onPrimary: Colors.white,
+                    surface: AppTheme.lightCard,
+                    onSurface: AppTheme.textPrimaryLight,
+                  ),
           ),
           child: child!,
         );
@@ -258,7 +266,21 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   @override
   Widget build(BuildContext context) {
     final batchesAsync = ref.watch(batchesListProvider);
-    final accentColor = _selectedSport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sportLower = _selectedSport.toLowerCase();
+    Color accentColor = sportLower == 'cricket'
+        ? AppTheme.accentLime
+        : (sportLower == 'chess' ? AppTheme.accentPurple : AppTheme.accentTeal);
+    if (!isDark) {
+      if (accentColor == AppTheme.accentLime) {
+        accentColor = AppTheme.accentLimeDark;
+      } else if (accentColor == AppTheme.accentTeal) {
+        accentColor = AppTheme.accentTealDark;
+      } else if (accentColor == AppTheme.accentPurple) {
+        accentColor = AppTheme.accentPurpleDark;
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -327,7 +349,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                               height: 110,
                               width: 110,
                               decoration: BoxDecoration(
-                                color: AppTheme.darkCard,
+                                color: theme.cardTheme.color ?? theme.colorScheme.surface,
                                 shape: BoxShape.circle,
                                 border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 2),
                                 boxShadow: [
@@ -355,7 +377,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                                             const SizedBox(height: AppTheme.space4),
                                             Text(
                                               'Pick Photo',
-                                              style: AppTheme.caption.copyWith(fontSize: 10),
+                                              style: AppTheme.caption.copyWith(fontSize: 10, color: theme.textTheme.bodySmall?.color),
                                             ),
                                           ],
                                         ),
@@ -368,9 +390,9 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(AppTheme.space6),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.darkBg,
+                                  color: theme.scaffoldBackgroundColor,
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: AppTheme.darkBorder),
+                                  border: Border.all(color: theme.colorScheme.outline, width: 0.6),
                                 ),
                                 child: Icon(Icons.edit_rounded, size: 14, color: accentColor),
                               ),
@@ -454,11 +476,12 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                     // Sport Selector
                     DropdownButtonFormField<String>(
                       value: _selectedSport,
-                      style: AppTheme.body1,
+                      style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Sport *'),
                       items: const [
                         DropdownMenuItem(value: 'cricket', child: Text('Cricket')),
                         DropdownMenuItem(value: 'football', child: Text('Football')),
+                        DropdownMenuItem(value: 'chess', child: Text('Chess')),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -488,7 +511,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
                         return DropdownButtonFormField<String>(
                           value: _selectedBatchId,
-                          style: AppTheme.body1,
+                          style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                           decoration: const InputDecoration(labelText: 'Assigned Batch'),
                           items: [
                             const DropdownMenuItem<String>(value: null, child: Text('No Batch')),
@@ -526,7 +549,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                     // Status Dropdown
                     DropdownButtonFormField<String>(
                       value: _selectedStatus,
-                      style: AppTheme.body1,
+                      style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
                         DropdownMenuItem(value: 'active', child: Text('Active')),

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/widgets/app_widgets.dart';
 
+import '../../auth/controllers/auth_controller.dart';
+
 class ActionsHubScreen extends ConsumerWidget {
   const ActionsHubScreen({super.key});
 
@@ -11,6 +13,9 @@ class ActionsHubScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final authState = ref.watch(authControllerProvider);
+    final profile = authState.profile;
+    final isAdmin = profile?.isAdmin ?? false;
 
     final hubItems = [
       _HubItem(
@@ -20,34 +25,36 @@ class ActionsHubScreen extends ConsumerWidget {
         color: AppTheme.accentTeal,
         route: '/attendance',
       ),
-      _HubItem(
-        title: 'Fee Ledger',
-        subtitle: 'Manage monthly student dues and registries',
-        icon: Icons.account_balance_wallet_rounded,
-        color: AppTheme.accentLime,
-        route: '/fees',
-      ),
-      _HubItem(
-        title: 'Expenses Log',
-        subtitle: 'Record academy bills, rents, and equipment fees',
-        icon: Icons.receipt_long_rounded,
-        color: AppTheme.errorRed,
-        route: '/expenses',
-      ),
-      _HubItem(
-        title: 'Financial Reports',
-        subtitle: 'Analyze overall revenue, expenses, and growth',
-        icon: Icons.bar_chart_rounded,
-        color: AppTheme.accentPurple,
-        route: '/reports',
-      ),
-      _HubItem(
-        title: 'Coaches Roster',
-        subtitle: 'Manage academy staff and account accesses',
-        icon: Icons.sports_rounded,
-        color: AppTheme.infoBlue,
-        route: '/users',
-      ),
+      if (isAdmin) ...[
+        _HubItem(
+          title: 'Fee Ledger',
+          subtitle: 'Manage monthly student dues and registries',
+          icon: Icons.account_balance_wallet_rounded,
+          color: AppTheme.accentLime,
+          route: '/fees',
+        ),
+        _HubItem(
+          title: 'Expenses Log',
+          subtitle: 'Record academy bills, rents, and equipment fees',
+          icon: Icons.receipt_long_rounded,
+          color: AppTheme.errorRed,
+          route: '/expenses',
+        ),
+        _HubItem(
+          title: 'Financial Reports',
+          subtitle: 'Analyze overall revenue, expenses, and growth',
+          icon: Icons.bar_chart_rounded,
+          color: AppTheme.accentPurple,
+          route: '/reports',
+        ),
+        _HubItem(
+          title: 'Coaches Roster',
+          subtitle: 'Manage academy staff and account accesses',
+          icon: Icons.sports_rounded,
+          color: AppTheme.infoBlue,
+          route: '/users',
+        ),
+      ],
     ];
 
     return Scaffold(

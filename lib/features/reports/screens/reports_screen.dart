@@ -6,6 +6,7 @@ import '../../../core/theme/theme.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../shared/widgets/app_widgets.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
+import '../../../core/utils/date_utils.dart';
 
 class MonthlyFinancials {
   final String label; // e.g. "Jan", "Feb"
@@ -190,7 +191,7 @@ final attendanceReportsDataProvider = FutureProvider.autoDispose<AttendanceRepor
 
   final List<DailyAttendanceStats> dailyTrendList = [];
   dailyMap.forEach((dStr, statuses) {
-    final parsedDate = DateTime.parse(dStr);
+    final parsedDate = DateUtilsHelper.parseSqlDate(dStr);
     final present = statuses.where((s) => s == 'present').length;
     final total = statuses.length;
     dailyTrendList.add(DailyAttendanceStats(
@@ -247,8 +248,8 @@ class _FinancialReportsView extends ConsumerWidget {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     return RefreshIndicator(
-      color: AppTheme.accentLime,
-      backgroundColor: AppTheme.darkCard,
+      color: Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
       onRefresh: () async {
         ref.invalidate(reportsDataProvider);
         ref.invalidate(adminDashboardDataProvider);
@@ -345,18 +346,21 @@ class _FinancialReportsView extends ConsumerWidget {
                             maxY: maxVal,
                             barTouchData: BarTouchData(
                               touchTooltipData: BarTouchTooltipData(
-                                getTooltipColor: (_) => AppTheme.darkCard,
-                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                  final monthLabel = rData.last6Months[groupIndex].label;
-                                  final isIncome = rodIndex == 0;
-                                  return BarTooltipItem(
-                                    '$monthLabel\n${isIncome ? 'Income' : 'Expense'}: ${currencyFormat.format(rod.toY)}',
-                                    AppTheme.subtitle2.copyWith(
-                                      color: isIncome ? AppTheme.accentLime : AppTheme.errorRed,
-                                      fontSize: 12,
-                                    ),
-                                  );
-                                },
+                                 getTooltipColor: (_) => Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
+                                 getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                   final monthLabel = rData.last6Months[groupIndex].label;
+                                   final isIncome = rodIndex == 0;
+                                   final isDark = Theme.of(context).brightness == Brightness.dark;
+                                   return BarTooltipItem(
+                                     '$monthLabel\n${isIncome ? 'Income' : 'Expense'}: ${currencyFormat.format(rod.toY)}',
+                                     AppTheme.subtitle2.copyWith(
+                                       color: isIncome
+                                           ? (isDark ? AppTheme.accentLime : AppTheme.successGreen)
+                                           : AppTheme.errorRed,
+                                       fontSize: 12,
+                                     ),
+                                   );
+                                 },
                               ),
                             ),
                             titlesData: FlTitlesData(
@@ -408,7 +412,7 @@ class _FinancialReportsView extends ConsumerWidget {
                                 barRods: [
                                   BarChartRodData(
                                     toY: financials.income,
-                                    color: AppTheme.accentLime,
+                                    color: Theme.of(context).colorScheme.primary,
                                     width: 10,
                                     borderRadius: BorderRadius.circular(AppTheme.radius6),
                                   ),
@@ -431,7 +435,7 @@ class _FinancialReportsView extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Container(width: 12, height: 12, decoration: BoxDecoration(color: AppTheme.accentLime, borderRadius: BorderRadius.circular(3))),
+                               Container(width: 12, height: 12, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(3))),
                               const SizedBox(width: 6),
                               Text('Income', style: AppTheme.caption),
                             ],
@@ -507,8 +511,8 @@ class _AttendanceReportsView extends ConsumerWidget {
     final attendanceReportsAsync = ref.watch(attendanceReportsDataProvider);
 
     return RefreshIndicator(
-      color: AppTheme.accentLime,
-      backgroundColor: AppTheme.darkCard,
+      color: Theme.of(context).colorScheme.primary,
+      backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
       onRefresh: () async {
         ref.invalidate(attendanceReportsDataProvider);
       },
@@ -587,14 +591,14 @@ class _AttendanceReportsView extends ConsumerWidget {
                         LineChartData(
                           lineTouchData: LineTouchData(
                             touchTooltipData: LineTouchTooltipData(
-                              getTooltipColor: (_) => AppTheme.darkCard,
+                              getTooltipColor: (_) => Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                               getTooltipItems: (List<LineBarSpot> touchedSpots) {
                                 return touchedSpots.map((spot) {
                                   final dayData = data.dailyTrend[spot.x.toInt()];
                                   final percentage = dayData.total > 0 ? (dayData.present / dayData.total * 100) : 0.0;
                                   return LineTooltipItem(
                                     '${dayData.dateLabel}\nPresent: ${dayData.present}/${dayData.total}\nRate: ${percentage.toStringAsFixed(1)}%',
-                                    AppTheme.subtitle2.copyWith(color: AppTheme.accentTeal, fontSize: 12),
+                                    AppTheme.subtitle2.copyWith(color: Theme.of(context).colorScheme.secondary, fontSize: 12),
                                   );
                                 }).toList();
                               },
@@ -640,13 +644,13 @@ class _AttendanceReportsView extends ConsumerWidget {
                                 return FlSpot(idx.toDouble(), rate);
                               }),
                               isCurved: true,
-                              color: AppTheme.accentTeal,
+                              color: Theme.of(context).colorScheme.secondary,
                               barWidth: 3,
                               isStrokeCapRound: true,
                               dotData: const FlDotData(show: false),
                               belowBarData: BarAreaData(
                                 show: true,
-                                color: AppTheme.accentTeal.withValues(alpha: 0.05),
+                                color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.05),
                               ),
                             ),
                           ],
@@ -700,7 +704,7 @@ class _AttendanceReportsView extends ConsumerWidget {
                                 value: bStats.attendanceRate,
                                 minHeight: 6,
                                 color: progressColor,
-                                backgroundColor: AppTheme.darkBorder,
+                                backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBorder : AppTheme.lightBorder,
                               ),
                             ),
                             const SizedBox(height: AppTheme.space8),

@@ -99,13 +99,14 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                       });
                     },
                   ),
-                  const SizedBox(width: AppTheme.space8),
+                  const SizedBox(width: AppTheme.space6),
                   _buildDropdownFilter(
                     value: _selectedSportFilter,
                     items: const [
                       DropdownMenuItem(value: 'all', child: Text('All Sports')),
                       DropdownMenuItem(value: 'cricket', child: Text('Cricket')),
                       DropdownMenuItem(value: 'football', child: Text('Football')),
+                      DropdownMenuItem(value: 'chess', child: Text('Chess')),
                     ],
                     onChanged: (val) {
                       setState(() {
@@ -113,7 +114,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                       });
                     },
                   ),
-                  const SizedBox(width: AppTheme.space8),
+                  const SizedBox(width: AppTheme.space6),
                   Consumer(
                     builder: (context, ref, child) {
                       final batchesAsync = ref.watch(studentListBatchesProvider);
@@ -209,26 +210,28 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
   }) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8),
       decoration: BoxDecoration(
         color: theme.cardTheme.color ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radius12),
-        border: Border.all(color: theme.colorScheme.outline),
+        borderRadius: BorderRadius.circular(AppTheme.radius16),
+        border: Border.all(color: theme.colorScheme.outline, width: 0.6),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           items: items,
           onChanged: onChanged,
+          isDense: true,
           dropdownColor: theme.cardTheme.color ?? theme.colorScheme.surface,
           style: AppTheme.subtitle2.copyWith(
-            fontSize: 13,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
             color: theme.textTheme.bodyMedium?.color,
           ),
           icon: Icon(
             Icons.arrow_drop_down,
             color: theme.textTheme.bodyMedium?.color ?? AppTheme.textSecondary,
-            size: 20,
+            size: 16,
           ),
         ),
       ),
@@ -236,7 +239,20 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
   }
 
   Widget _buildStudentCard(BuildContext context, WidgetRef ref, Student student) {
-    final sportColor = student.sport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sportLower = student.sport.toLowerCase();
+    Color sportColor = sportLower == 'cricket'
+        ? AppTheme.accentLime
+        : (sportLower == 'chess' ? AppTheme.accentPurple : AppTheme.accentTeal);
+    if (!isDark) {
+      if (sportColor == AppTheme.accentLime) {
+        sportColor = AppTheme.accentLimeDark;
+      } else if (sportColor == AppTheme.accentTeal) {
+        sportColor = AppTheme.accentTealDark;
+      } else if (sportColor == AppTheme.accentPurple) {
+        sportColor = AppTheme.accentPurpleDark;
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.space10),
@@ -262,7 +278,7 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                   Row(
                     children: [
                       if (student.age != null)
-                        _infoPill('Age ${student.age}', AppTheme.textMuted),
+                        _infoPill('Age ${student.age}', isDark ? AppTheme.textMuted : AppTheme.textMutedLight),
                       if (student.age != null) const SizedBox(width: AppTheme.space6),
                       AppStatusChip.sport(student.sport),
                     ],
@@ -271,11 +287,13 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
                     const SizedBox(height: AppTheme.space6),
                     Row(
                       children: [
-                        const Icon(Icons.phone_rounded, size: 12, color: AppTheme.textMuted),
+                        Icon(Icons.phone_rounded, size: 12, color: isDark ? AppTheme.textMuted : AppTheme.textMutedLight),
                         const SizedBox(width: AppTheme.space4),
                         Text(
                           student.phone!,
-                          style: AppTheme.caption,
+                          style: AppTheme.caption.copyWith(
+                            color: isDark ? AppTheme.textMuted : AppTheme.textMutedLight,
+                          ),
                         ),
                       ],
                     ),

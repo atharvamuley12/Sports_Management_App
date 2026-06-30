@@ -59,13 +59,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showLogExpenseDialog,
-        backgroundColor: AppTheme.accentLime,
-        foregroundColor: Colors.black,
         child: const Icon(Icons.add_rounded, size: 24),
       ),
       body: RefreshIndicator(
-        color: AppTheme.accentLime,
-        backgroundColor: AppTheme.darkCard,
+        color: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         onRefresh: () async {
           ref.invalidate(expensesListProvider);
         },
@@ -251,19 +249,20 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   }
 
   void _showLogExpenseDialog() {
+    final formKey = GlobalKey<FormState>();
+    final amountController = TextEditingController();
+    final descController = TextEditingController();
+    String selectedCategory = 'equipment';
+    DateTime expenseDate = DateTime.now();
+    XFile? receiptFile;
+    final picker = ImagePicker();
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          final formKey = GlobalKey<FormState>();
-          final amountController = TextEditingController();
-          final descController = TextEditingController();
 
-          String selectedCategory = 'equipment';
-          DateTime expenseDate = DateTime.now();
-          XFile? receiptFile;
-          final picker = ImagePicker();
 
           Future<void> pickImage(ImageSource source) async {
             final file = await picker.pickImage(source: source, imageQuality: 70);
@@ -281,14 +280,22 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
               builder: (context, child) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: const ColorScheme.dark(
-                      primary: AppTheme.accentLime,
-                      onPrimary: Colors.black,
-                      surface: AppTheme.darkCard,
-                      onSurface: AppTheme.textPrimary,
-                    ),
+                    colorScheme: isDark
+                        ? const ColorScheme.dark(
+                            primary: AppTheme.accentLime,
+                            onPrimary: Colors.black,
+                            surface: AppTheme.darkCard,
+                            onSurface: AppTheme.textPrimary,
+                          )
+                        : const ColorScheme.light(
+                            primary: AppTheme.accentLimeDark,
+                            onPrimary: Colors.white,
+                            surface: AppTheme.lightCard,
+                            onSurface: AppTheme.textPrimaryLight,
+                          ),
                   ),
                   child: child!,
                 );
@@ -328,9 +335,13 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   SnackBar(
                     content: Text(
                       'Expense logged successfully!',
-                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                      style: AppTheme.body2.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.textPrimary
+                            : AppTheme.textPrimaryLight,
+                      ),
                     ),
-                    backgroundColor: AppTheme.darkCard,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                   ),
                 );
               }
@@ -380,7 +391,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         children: [
                           DropdownButtonFormField<String>(
                             value: selectedCategory,
-                            style: AppTheme.body1,
+                            style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Category *'),
                             items: const [
                               DropdownMenuItem(value: 'equipment', child: Text('Equipment')),
@@ -571,17 +582,18 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   }
 
   void _showEditExpenseDialog(Expense expense) {
+    final formKey = GlobalKey<FormState>();
+    final amountController = TextEditingController(text: expense.amount.toStringAsFixed(0));
+    final descController = TextEditingController(text: expense.description ?? '');
+    String selectedCategory = expense.category;
+    DateTime expenseDate = expense.date;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          final formKey = GlobalKey<FormState>();
-          final amountController = TextEditingController(text: expense.amount.toStringAsFixed(0));
-          final descController = TextEditingController(text: expense.description ?? '');
 
-          String selectedCategory = expense.category;
-          DateTime expenseDate = expense.date;
 
           Future<void> pickDate() async {
             final picked = await showDatePicker(
@@ -590,14 +602,22 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
               builder: (context, child) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: const ColorScheme.dark(
-                      primary: AppTheme.accentLime,
-                      onPrimary: Colors.black,
-                      surface: AppTheme.darkCard,
-                      onSurface: AppTheme.textPrimary,
-                    ),
+                    colorScheme: isDark
+                        ? const ColorScheme.dark(
+                            primary: AppTheme.accentLime,
+                            onPrimary: Colors.black,
+                            surface: AppTheme.darkCard,
+                            onSurface: AppTheme.textPrimary,
+                          )
+                        : const ColorScheme.light(
+                            primary: AppTheme.accentLimeDark,
+                            onPrimary: Colors.white,
+                            surface: AppTheme.lightCard,
+                            onSurface: AppTheme.textPrimaryLight,
+                          ),
                   ),
                   child: child!,
                 );
@@ -634,9 +654,13 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   SnackBar(
                     content: Text(
                       'Expense updated successfully!',
-                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                      style: AppTheme.body2.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.textPrimary
+                            : AppTheme.textPrimaryLight,
+                      ),
                     ),
-                    backgroundColor: AppTheme.darkCard,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                   ),
                 );
               }
@@ -686,7 +710,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         children: [
                           DropdownButtonFormField<String>(
                             value: selectedCategory,
-                            style: AppTheme.body1,
+                            style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Category *'),
                             items: const [
                               DropdownMenuItem(value: 'equipment', child: Text('Equipment')),
@@ -799,9 +823,13 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     SnackBar(
                       content: Text(
                         'Expense deleted successfully!',
-                        style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                        style: AppTheme.body2.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.textPrimary
+                              : AppTheme.textPrimaryLight,
+                        ),
                       ),
-                      backgroundColor: AppTheme.darkCard,
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                     ),
                   );
                 }

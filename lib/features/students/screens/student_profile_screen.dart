@@ -52,7 +52,20 @@ class StudentProfileScreen extends ConsumerWidget {
     final paymentsAsync = ref.watch(studentPaymentsHistoryProvider(student.id));
     final attendanceAsync = ref.watch(studentAttendanceLogsProvider(student.id));
 
-    final sportColor = student.sport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sportLower = student.sport.toLowerCase();
+    Color sportColor = sportLower == 'cricket'
+        ? AppTheme.accentLime
+        : (sportLower == 'chess' ? AppTheme.accentPurple : AppTheme.accentTeal);
+    if (!isDark) {
+      if (sportColor == AppTheme.accentLime) {
+        sportColor = AppTheme.accentLimeDark;
+      } else if (sportColor == AppTheme.accentTeal) {
+        sportColor = AppTheme.accentTealDark;
+      } else if (sportColor == AppTheme.accentPurple) {
+        sportColor = AppTheme.accentPurpleDark;
+      }
+    }
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
 
     return Scaffold(
@@ -66,11 +79,11 @@ class StudentProfileScreen extends ConsumerWidget {
                 icon: Icon(
                   Icons.edit_outlined, 
                   size: 18, 
-                  color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentLime,
+                  color: isRestrictedCoach ? AppTheme.textMuted : Theme.of(context).colorScheme.primary,
                 ),
                 label: Text(
                   isRestrictedCoach ? 'Edit (Restricted)' : 'Edit',
-                  style: TextStyle(color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentLime),
+                  style: TextStyle(color: isRestrictedCoach ? AppTheme.textMuted : Theme.of(context).colorScheme.primary),
                 ),
                 onPressed: isRestrictedCoach
                     ? null
@@ -91,7 +104,7 @@ class StudentProfileScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Header card
-            _buildProfileHeader(ref, sportColor),
+            _buildProfileHeader(context, ref, sportColor),
             const SizedBox(height: AppTheme.space16),
 
             // Parent contact information
@@ -116,7 +129,7 @@ class StudentProfileScreen extends ConsumerWidget {
                 child: SizedBox(height: 2, child: LinearProgressIndicator()),
               )),
               error: (err, stack) => AppErrorState(message: 'Error loading attendance: $err'),
-              data: (logs) => _buildAttendanceSummary(logs),
+              data: (logs) => _buildAttendanceSummary(context, logs),
             ),
             const SizedBox(height: AppTheme.space16),
 
@@ -138,12 +151,12 @@ class StudentProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileHeader(WidgetRef ref, Color sportColor) {
+  Widget _buildProfileHeader(BuildContext context, WidgetRef ref, Color sportColor) {
     return AppCard(
       padding: const EdgeInsets.all(AppTheme.space20),
       child: Row(
         children: [
-          _buildPhoto(ref, sportColor),
+          _buildPhoto(context, ref, sportColor),
           const SizedBox(width: AppTheme.space20),
           Expanded(
             child: Column(
@@ -184,7 +197,7 @@ class StudentProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPhoto(WidgetRef ref, Color fallbackColor) {
+  Widget _buildPhoto(BuildContext context, WidgetRef ref, Color fallbackColor) {
     if (student.photoUrl == null || student.photoUrl!.isEmpty) {
       return Container(
         width: 80,
@@ -216,10 +229,10 @@ class StudentProfileScreen extends ConsumerWidget {
           color: AppTheme.darkSurface,
           borderRadius: BorderRadius.circular(AppTheme.radius20),
         ),
-        child: const Center(child: SizedBox(
+        child: Center(child: SizedBox(
           width: 20,
           height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+          child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.primary),
         )),
       ),
       error: (err, stack) => Container(
@@ -283,7 +296,7 @@ class StudentProfileScreen extends ConsumerWidget {
                   children: [
                     AppIconButton(
                       icon: Icons.call_rounded,
-                      color: AppTheme.accentLime,
+                      color: Theme.of(context).colorScheme.primary,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Simulated call to ${student.phone}')),
@@ -294,7 +307,7 @@ class StudentProfileScreen extends ConsumerWidget {
                     const SizedBox(width: AppTheme.space8),
                     AppIconButton(
                       icon: Icons.chat_bubble_outline_rounded,
-                      color: AppTheme.accentTeal,
+                      color: Theme.of(context).colorScheme.secondary,
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Simulated SMS to ${student.phone}')),
@@ -399,7 +412,7 @@ class StudentProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAttendanceSummary(List<Attendance> logs) {
+  Widget _buildAttendanceSummary(BuildContext context, List<Attendance> logs) {
     final presentCount = logs.where((l) => l.status == 'present').length;
     final totalCount = logs.length;
     final double rate = totalCount > 0 ? presentCount / totalCount : 0.0;
@@ -447,7 +460,7 @@ class StudentProfileScreen extends ConsumerWidget {
                       value: rate,
                       minHeight: 6,
                       color: rateColor,
-                      backgroundColor: AppTheme.darkBorder,
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBorder : AppTheme.lightBorder,
                     ),
                   ),
                 ),

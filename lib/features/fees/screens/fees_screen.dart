@@ -49,8 +49,8 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              color: AppTheme.accentLime,
-              backgroundColor: AppTheme.darkCard,
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
               onRefresh: () async {
                 ref.invalidate(studentDuesProvider);
               },
@@ -203,19 +203,20 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
   }
 
   void _showRecordPaymentDialog(StudentDues dues) {
+    final formKey = GlobalKey<FormState>();
+    final amountController = TextEditingController(
+      text: dues.pendingDues > 0 ? dues.pendingDues.toString() : dues.monthlyFee.toString(),
+    );
+    DateTime paymentDate = DateTime.now();
+    int selectedMonth = DateTime.now().month;
+    int selectedYear = DateTime.now().year;
+    String selectedMode = 'upi';
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          final formKey = GlobalKey<FormState>();
-          final amountController = TextEditingController(
-            text: dues.pendingDues > 0 ? dues.pendingDues.toString() : dues.monthlyFee.toString(),
-          );
-          DateTime paymentDate = DateTime.now();
-          int selectedMonth = DateTime.now().month;
-          int selectedYear = DateTime.now().year;
-          String selectedMode = 'upi';
 
           Future<void> pickDate() async {
             final picked = await showDatePicker(
@@ -224,14 +225,22 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
               builder: (context, child) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Theme(
                   data: Theme.of(context).copyWith(
-                    colorScheme: const ColorScheme.dark(
-                      primary: AppTheme.accentLime,
-                      onPrimary: Colors.black,
-                      surface: AppTheme.darkCard,
-                      onSurface: AppTheme.textPrimary,
-                    ),
+                    colorScheme: isDark
+                        ? const ColorScheme.dark(
+                            primary: AppTheme.accentLime,
+                            onPrimary: Colors.black,
+                            surface: AppTheme.darkCard,
+                            onSurface: AppTheme.textPrimary,
+                          )
+                        : const ColorScheme.light(
+                            primary: AppTheme.accentLimeDark,
+                            onPrimary: Colors.white,
+                            surface: AppTheme.lightCard,
+                            onSurface: AppTheme.textPrimaryLight,
+                          ),
                   ),
                   child: child!,
                 );
@@ -272,9 +281,13 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                   SnackBar(
                     content: Text(
                       'Payment recorded successfully!',
-                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                      style: AppTheme.body2.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.textPrimary
+                            : AppTheme.textPrimaryLight,
+                      ),
                     ),
-                    backgroundColor: AppTheme.darkCard,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                   ),
                 );
               }
@@ -362,7 +375,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                               Expanded(
                                 child: DropdownButtonFormField<int>(
                                   value: selectedMonth,
-                                  style: AppTheme.body1,
+                                  style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                                   decoration: const InputDecoration(labelText: 'Month'),
                                   items: List.generate(12, (i) => i + 1)
                                       .map((m) => DropdownMenuItem(
@@ -379,7 +392,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                               Expanded(
                                 child: DropdownButtonFormField<int>(
                                   value: selectedYear,
-                                  style: AppTheme.body1,
+                                  style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                                   decoration: const InputDecoration(labelText: 'Year'),
                                   items: [selectedYear - 1, selectedYear, selectedYear + 1]
                                       .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
@@ -395,7 +408,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                           // Payment Mode
                           DropdownButtonFormField<String>(
                             value: selectedMode,
-                            style: AppTheme.body1,
+                            style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Payment Mode'),
                             items: const [
                               DropdownMenuItem(value: 'upi', child: Text('UPI')),
@@ -433,7 +446,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.darkCard,
+      backgroundColor: Theme.of(context).bottomSheetTheme.backgroundColor,
       builder: (ctx) {
         final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
         return DraggableScrollableSheet(

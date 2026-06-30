@@ -109,8 +109,23 @@ class BatchListScreen extends ConsumerWidget {
                 final coachName = batch.coachId != null ? (coaches[batch.coachId] ?? 'Unknown Coach') : 'Unassigned';
                 final studentCount = counts[batch.id] ?? 0;
                 final isFull = studentCount >= batch.capacity;
-                final sportColor = batch.sport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
-                final gradient = batch.sport == 'cricket' ? AppTheme.limeGradient : AppTheme.tealGradient;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final sportLower = batch.sport.toLowerCase();
+                Color sportColor = sportLower == 'cricket'
+                    ? AppTheme.accentLime
+                    : (sportLower == 'chess' ? AppTheme.accentPurple : AppTheme.accentTeal);
+                if (!isDark) {
+                  if (sportColor == AppTheme.accentLime) {
+                    sportColor = AppTheme.accentLimeDark;
+                  } else if (sportColor == AppTheme.accentTeal) {
+                    sportColor = AppTheme.accentTealDark;
+                  } else if (sportColor == AppTheme.accentPurple) {
+                    sportColor = AppTheme.accentPurpleDark;
+                  }
+                }
+                final gradient = sportLower == 'cricket'
+                    ? AppTheme.limeGradient
+                    : (sportLower == 'chess' ? AppTheme.purpleGradient : AppTheme.tealGradient);
                 final capacityRatio = batch.capacity > 0 ? studentCount / batch.capacity : 0.0;
 
                 return Padding(
@@ -128,7 +143,9 @@ class BatchListScreen extends ConsumerWidget {
                         Row(
                           children: [
                             AppGradientIcon(
-                              icon: batch.sport == 'cricket' ? Icons.sports_cricket : Icons.sports_soccer,
+                              icon: sportLower == 'cricket'
+                                  ? Icons.sports_cricket
+                                  : (sportLower == 'chess' ? Icons.grid_on : Icons.sports_soccer),
                               gradient: gradient,
                               size: 18,
                               padding: AppTheme.space8,
@@ -215,7 +232,7 @@ class BatchListScreen extends ConsumerWidget {
                           child: LinearProgressIndicator(
                             value: capacityRatio.clamp(0.0, 1.0),
                             minHeight: 4,
-                            backgroundColor: AppTheme.darkBorder,
+                            backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBorder : AppTheme.lightBorder,
                             valueColor: AlwaysStoppedAnimation(isFull ? AppTheme.errorRed : sportColor),
                           ),
                         ),

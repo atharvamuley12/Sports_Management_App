@@ -38,6 +38,67 @@ final authRefreshListenableProvider = Provider<AuthRefreshListenable>((ref) {
   return AuthRefreshListenable(ref);
 });
 
+// ─── Premium Page Transitions ───────────────────────────────────────
+
+/// Fade transition for tab/shell routes — smooth but instant-feeling
+CustomTransitionPage<void> _fadeTransition(Widget child, GoRouterState state) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 200),
+    reverseTransitionDuration: const Duration(milliseconds: 150),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+        child: child,
+      );
+    },
+  );
+}
+
+/// Slide from right + fade for push routes — iOS-style premium feel
+CustomTransitionPage<void> _slideTransition(Widget child, GoRouterState state) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 250),
+    reverseTransitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0.25, 0),
+          end: Offset.zero,
+        ).animate(curved),
+        child: FadeTransition(
+          opacity: curved,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+/// Scale + fade for auth → dashboard entrance — dramatic first impression
+CustomTransitionPage<void> _scaleTransition(Widget child, GoRouterState state) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return ScaleTransition(
+        scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
+        child: FadeTransition(
+          opacity: curved,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshListenable = ref.watch(authRefreshListenableProvider);
 
@@ -47,11 +108,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/auth',
-        builder: (context, state) => const AuthScreen(),
+        pageBuilder: (context, state) => _scaleTransition(const AuthScreen(), state),
       ),
       GoRoute(
         path: '/change-password',
-        builder: (context, state) => const ChangePasswordScreen(),
+        pageBuilder: (context, state) => _slideTransition(const ChangePasswordScreen(), state),
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -60,75 +121,75 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) => const DashboardScreen(),
+            pageBuilder: (context, state) => _fadeTransition(const DashboardScreen(), state),
           ),
           GoRoute(
             path: '/students',
-            builder: (context, state) => const StudentListScreen(),
+            pageBuilder: (context, state) => _fadeTransition(const StudentListScreen(), state),
           ),
           GoRoute(
             path: '/batches',
-            builder: (context, state) => const BatchListScreen(),
+            pageBuilder: (context, state) => _fadeTransition(const BatchListScreen(), state),
           ),
           GoRoute(
             path: '/hub',
-            builder: (context, state) => const ActionsHubScreen(),
+            pageBuilder: (context, state) => _fadeTransition(const ActionsHubScreen(), state),
           ),
           GoRoute(
             path: '/settings',
-            builder: (context, state) => const SettingsScreen(),
+            pageBuilder: (context, state) => _fadeTransition(const SettingsScreen(), state),
           ),
           GoRoute(
             path: '/attendance',
-            builder: (context, state) => const AttendanceScreen(),
+            pageBuilder: (context, state) => _fadeTransition(const AttendanceScreen(), state),
           ),
         ],
       ),
       // Subpages outside Shell (they slide over the bottom nav bar)
       GoRoute(
         path: '/students/new',
-        builder: (context, state) => const StudentFormScreen(),
+        pageBuilder: (context, state) => _slideTransition(const StudentFormScreen(), state),
       ),
       GoRoute(
         path: '/students/edit',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final student = state.extra as Student?;
-          return StudentFormScreen(student: student);
+          return _slideTransition(StudentFormScreen(student: student), state);
         },
       ),
       GoRoute(
         path: '/students/profile',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final student = state.extra as Student;
-          return StudentProfileScreen(student: student);
+          return _slideTransition(StudentProfileScreen(student: student), state);
         },
       ),
       GoRoute(
         path: '/batches/new',
-        builder: (context, state) => const BatchFormScreen(),
+        pageBuilder: (context, state) => _slideTransition(const BatchFormScreen(), state),
       ),
       GoRoute(
         path: '/batches/edit',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final batch = state.extra as Batch?;
-          return BatchFormScreen(batch: batch);
+          return _slideTransition(BatchFormScreen(batch: batch), state);
         },
       ),
       GoRoute(
         path: '/fees',
-        builder: (context, state) => const FeesScreen(),
+        pageBuilder: (context, state) => _slideTransition(const FeesScreen(), state),
       ),
       GoRoute(
         path: '/expenses',
-        builder: (context, state) => const ExpensesScreen(),
+        pageBuilder: (context, state) => _slideTransition(const ExpensesScreen(), state),
       ),
       GoRoute(
         path: '/reports',
-        builder: (context, state) => const ReportsScreen(),
+        pageBuilder: (context, state) => _slideTransition(const ReportsScreen(), state),
       ),
       GoRoute(
         path: '/users',
-        builder: (context, state) => const CoachesScreen(),
+        pageBuilder: (context, state) => _slideTransition(const CoachesScreen(), state),
       ),
     ],
     redirect: (context, state) {
@@ -163,7 +224,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 5. Role restrictions: Coaches cannot access admin routes
       if (profile.isCoach) {
-        final adminOnlyPaths = ['/fees', '/expenses', '/reports', '/users', '/batches', '/settings'];
+        final adminOnlyPaths = ['/fees', '/expenses', '/reports', '/users', '/batches'];
         if (adminOnlyPaths.contains(state.matchedLocation)) {
           return '/dashboard';
         }
@@ -173,5 +234,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
   );
 });
-
-

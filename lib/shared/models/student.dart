@@ -1,3 +1,5 @@
+import '../../core/utils/date_utils.dart';
+
 class Student {
   final String id;
   final String name;
@@ -37,7 +39,7 @@ class Student {
       sport: json['sport'] as String,
       batchId: json['batch_id'] as String?,
       monthlyFee: (json['monthly_fee'] as num).toDouble(),
-      joinDate: DateTime.parse(json['join_date'] as String),
+      joinDate: DateUtilsHelper.parseSqlDate(json['join_date'] as String),
       status: json['status'] as String? ?? 'active',
       photoUrl: json['photo_url'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),

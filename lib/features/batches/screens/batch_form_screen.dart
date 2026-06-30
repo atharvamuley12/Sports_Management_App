@@ -84,14 +84,22 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
       context: context,
       initialTime: TimeOfDay.now(),
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.accentLime,
-              onPrimary: Colors.black,
-              surface: AppTheme.darkCard,
-              onSurface: AppTheme.textPrimary,
-            ),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: AppTheme.accentLime,
+                    onPrimary: Colors.black,
+                    surface: AppTheme.darkCard,
+                    onSurface: AppTheme.textPrimary,
+                  )
+                : const ColorScheme.light(
+                    primary: AppTheme.accentLimeDark,
+                    onPrimary: Colors.white,
+                    surface: AppTheme.lightCard,
+                    onSurface: AppTheme.textPrimaryLight,
+                  ),
           ),
           child: child!,
         );
@@ -165,7 +173,7 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
               'Batch ${isEdit ? 'updated' : 'created'} successfully!',
               style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
             ),
-            backgroundColor: AppTheme.darkCard,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
           ),
         );
         Navigator.of(context).pop();
@@ -266,7 +274,20 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
   Widget build(BuildContext context) {
     final coachesAsync = ref.watch(formCoachesProvider);
     final studentsAsync = ref.watch(formStudentsProvider);
-    final accentColor = _selectedSport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sportLower = _selectedSport.toLowerCase();
+    Color accentColor = sportLower == 'cricket'
+        ? AppTheme.accentLime
+        : (sportLower == 'chess' ? AppTheme.accentPurple : AppTheme.accentTeal);
+    if (!isDark) {
+      if (accentColor == AppTheme.accentLime) {
+        accentColor = AppTheme.accentLimeDark;
+      } else if (accentColor == AppTheme.accentTeal) {
+        accentColor = AppTheme.accentTealDark;
+      } else if (accentColor == AppTheme.accentPurple) {
+        accentColor = AppTheme.accentPurpleDark;
+      }
+    }
 
     // Initial student selection mapping
     if (isEdit && _isFirstLoad && studentsAsync.hasValue) {
@@ -324,11 +345,12 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                         Expanded(
                           child: DropdownButtonFormField<String>(
                             value: _selectedSport,
-                            style: AppTheme.body1,
+                            style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Sport *'),
                             items: const [
                               DropdownMenuItem(value: 'cricket', child: Text('Cricket')),
                               DropdownMenuItem(value: 'football', child: Text('Football')),
+                              DropdownMenuItem(value: 'chess', child: Text('Chess')),
                             ],
                             onChanged: (val) {
                               if (val != null) {
@@ -368,7 +390,7 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                       data: (coaches) {
                         return DropdownButtonFormField<String>(
                           value: _selectedCoachId,
-                          style: AppTheme.body1,
+                          style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                           decoration: const InputDecoration(labelText: 'Assigned Coach'),
                           items: [
                             const DropdownMenuItem<String>(value: null, child: Text('Unassigned')),
@@ -391,7 +413,7 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                     const SizedBox(height: AppTheme.space12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space8),
-                      decoration: AppTheme.subtleCard(borderRadius: AppTheme.radius16),
+                      decoration: AppTheme.subtleCard(borderRadius: AppTheme.radius16, isDark: isDark),
                       child: Wrap(
                         spacing: 6,
                         runSpacing: 4,
@@ -487,16 +509,16 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                         return Container(
                           height: 220,
                           decoration: BoxDecoration(
-                            color: AppTheme.darkCard,
+                            color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
                             borderRadius: BorderRadius.circular(AppTheme.radius16),
-                            border: Border.all(color: AppTheme.darkBorder),
+                            border: Border.all(color: Theme.of(context).colorScheme.outline, width: 0.6),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(AppTheme.radius16),
                             child: ListView.separated(
                               itemCount: sportStudents.length,
                               padding: const EdgeInsets.symmetric(vertical: AppTheme.space8),
-                              separatorBuilder: (context, index) => const Divider(height: 1, color: AppTheme.darkBorderSubtle),
+                              separatorBuilder: (context, index) => Divider(height: 1, color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5)),
                               itemBuilder: (context, idx) {
                                 final student = sportStudents[idx];
                                 final isCurrentBatch = student.batchId == widget.batch?.id;
