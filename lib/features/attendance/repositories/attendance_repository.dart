@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../shared/models/attendance.dart';
-import '../../../core/utils/date_utils.dart';
 
 final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
   final supabase = ref.watch(supabaseClientProvider);

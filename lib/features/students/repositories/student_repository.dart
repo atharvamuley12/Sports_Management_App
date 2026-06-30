@@ -11,9 +11,12 @@ final studentRepositoryProvider = Provider<StudentRepository>((ref) {
 });
 
 /// Caches and returns image bytes for student photos from the private storage bucket.
-final studentPhotoBytesProvider = FutureProvider.family<Uint8List, String>((ref, path) async {
+final studentPhotoBytesProvider = FutureProvider.family.autoDispose<Uint8List, String>((ref, path) async {
   final supabase = ref.watch(supabaseClientProvider);
-  return await supabase.storage.from('student_photos').download(path);
+  return await supabase.storage
+      .from('student_photos')
+      .download(path)
+      .timeout(const Duration(seconds: 20));
 });
 
 class StudentRepository {
@@ -26,7 +29,8 @@ class StudentRepository {
     final response = await _supabase
         .from('students')
         .select()
-        .order('name', ascending: true);
+        .order('name', ascending: true)
+        .timeout(const Duration(seconds: 20));
     return (response as List).map((json) => Student.fromJson(json)).toList();
   }
 
@@ -41,7 +45,7 @@ class StudentRepository {
           path,
           bytes,
           fileOptions: FileOptions(contentType: photo.mimeType, upsert: true),
-        );
+        ).timeout(const Duration(seconds: 30));
     return path;
   }
 
@@ -74,7 +78,7 @@ class StudentRepository {
       'join_date': "${joinDate.year.toString().padLeft(4, '0')}-${joinDate.month.toString().padLeft(2, '0')}-${joinDate.day.toString().padLeft(2, '0')}",
       'status': status,
       'photo_url': photoPath,
-    });
+    }).timeout(const Duration(seconds: 20));
   }
 
   /// Updates a student record. Admin only.
@@ -113,12 +117,12 @@ class StudentRepository {
       'join_date': "${joinDate.year.toString().padLeft(4, '0')}-${joinDate.month.toString().padLeft(2, '0')}-${joinDate.day.toString().padLeft(2, '0')}",
       'status': status,
       'photo_url': photoPath,
-    }).eq('id', id);
+    }).eq('id', id).timeout(const Duration(seconds: 20));
   }
 
   /// Deletes a student record. Admin only.
   Future<void> deleteStudent(String id, {String? photoUrl}) async {
-    await _supabase.from('students').delete().eq('id', id);
+    await _supabase.from('students').delete().eq('id', id).timeout(const Duration(seconds: 20));
     if (photoUrl != null && photoUrl.isNotEmpty) {
       try {
         await _supabase.storage.from('student_photos').remove([photoUrl]);

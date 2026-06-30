@@ -23,7 +23,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   final _passwordController = TextEditingController();
 
   // State
-  bool _isSignUp = false;
   String _selectedRole = 'admin';
   bool _obscurePassword = true;
 
@@ -119,7 +118,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     final roleColor = isAdmin
         ? (isDark ? AppTheme.accentLime : AppTheme.accentLimeDark)
         : (isDark ? AppTheme.accentTeal : AppTheme.accentTealDark);
-    final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Stack(

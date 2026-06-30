@@ -1,0 +1,6 @@
+# Copy this file to key.properties and fill real values.
+# Do not commit key.properties.
+storeFile=../upload-keystore.jks
+storePassword=CHANGE_ME
+keyAlias=upload
+keyPassword=CHANGE_ME

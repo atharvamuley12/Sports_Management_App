@@ -51,7 +51,7 @@ void main() async {
     try {
       await Supabase.initialize(
         url: supabaseUrl,
-        anonKey: supabaseAnonKey,
+        publishableKey: supabaseAnonKey,
       );
     } catch (e) {
       debugPrint('Supabase initialization failed: $e');

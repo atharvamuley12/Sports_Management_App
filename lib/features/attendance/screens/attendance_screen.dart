@@ -119,9 +119,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
         _attendanceMap = newMap;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load students: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load students: $e')),
+        );
+      }
     } finally {
       setState(() {
         _isDataLoading = false;
@@ -405,7 +407,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
                     }
 
                     return DropdownButtonFormField<String>(
-                      value: _selectedBatchId,
+                      initialValue: _selectedBatchId,
                       style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Select Batch'),
                       items: batches.map(
@@ -536,9 +538,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
                                     ],
                                   ),
                                 ),
-                                Switch(
-                                  value: isPresent,
-                                  activeColor: AppTheme.accentLime,
+                                  Switch(
+                                    value: isPresent,
+                                    activeThumbColor: AppTheme.accentLime,
                                   onChanged: isReadOnlyForCoach
                                       ? null
                                       : (val) {
@@ -658,8 +660,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
                   loading: () => const Center(child: SizedBox(height: 2, child: LinearProgressIndicator())),
                   error: (err, stack) => const SizedBox(),
                   data: (batches) {
-                    return DropdownButtonFormField<String>(
-                      value: _historyBatchId,
+                     return DropdownButtonFormField<String>(
+                      initialValue: _historyBatchId,
                       style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Filter Batch'),
                       items: [

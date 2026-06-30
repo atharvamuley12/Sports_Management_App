@@ -818,13 +818,13 @@ class DashboardScreen extends ConsumerWidget {
                   label: 'Attendance',
                   icon: Icons.checklist_rounded,
                   color: isRestrictedCoach ? AppTheme.textMuted : Theme.of(context).colorScheme.secondary,
-                  onTap: (batch == null || isRestrictedCoach) ? null : () => context.push('/attendance'),
+                  onTap: (batch == null || isRestrictedCoach) ? null : () => context.go('/attendance'),
                 ),
                 _ActionCard(
                   label: 'View Students',
                   icon: Icons.people_alt_rounded,
                   color: Theme.of(context).colorScheme.primary,
-                  onTap: batch == null ? null : () => context.push('/students'),
+                  onTap: batch == null ? null : () => context.go('/students'),
                 ),
                 _ActionCard(
                   label: 'Add Student',

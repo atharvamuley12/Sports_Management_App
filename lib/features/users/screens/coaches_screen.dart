@@ -128,13 +128,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                           children: [
                             Switch(
                               value: coach.isActive,
-                              activeColor: Theme.of(context).colorScheme.primary,
+                              activeThumbColor: Theme.of(context).colorScheme.primary,
                               onChanged: (val) async {
                                 try {
                                   final repo = ref.read(profileRepositoryProvider);
                                   await repo.toggleCoachActive(coach.id, val);
                                   ref.invalidate(coachesListProvider);
-                                  if (mounted) {
+                                  if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
@@ -150,7 +150,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                                     );
                                   }
                                 } catch (e) {
-                                  if (mounted) {
+                                  if (context.mounted) {
                                     ErrorHandler.showError(context, 'Failed to update', e);
                                   }
                                 }
@@ -217,7 +217,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (dialogCtx, setState) {
 
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) return;
@@ -237,7 +237,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
 
               ref.invalidate(coachesListProvider);
               if (mounted) {
-                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -353,7 +353,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (dialogCtx, setState) {
 
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) return;
@@ -367,7 +367,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               await repo.resetCoachPassword(coach.id, passwordController.text);
 
               if (mounted) {
-                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -479,7 +479,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (dialogCtx, setState) {
 
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) return;
@@ -500,7 +500,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
 
               ref.invalidate(coachesListProvider);
               if (mounted) {
-                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(

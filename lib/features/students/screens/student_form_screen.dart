@@ -73,7 +73,12 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final image = await _picker.pickImage(source: source, imageQuality: 70);
+      final image = await _picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 1080,
+        maxHeight: 1080,
+      );
       if (image != null) {
         setState(() {
           _photoFile = image;
@@ -475,7 +480,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
                     // Sport Selector
                     DropdownButtonFormField<String>(
-                      value: _selectedSport,
+                      initialValue: _selectedSport,
                       style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Sport *'),
                       items: const [
@@ -510,7 +515,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                         }
 
                         return DropdownButtonFormField<String>(
-                          value: _selectedBatchId,
+                          initialValue: _selectedBatchId,
                           style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                           decoration: const InputDecoration(labelText: 'Assigned Batch'),
                           items: [
@@ -548,7 +553,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
                     // Status Dropdown
                     DropdownButtonFormField<String>(
-                      value: _selectedStatus,
+                      initialValue: _selectedStatus,
                       style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [

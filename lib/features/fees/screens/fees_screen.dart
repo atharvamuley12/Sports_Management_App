@@ -216,15 +216,15 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (dialogCtx, setState) {
 
           Future<void> pickDate() async {
             final picked = await showDatePicker(
-              context: context,
+              context: dialogCtx,
               initialDate: paymentDate,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
-              builder: (context, child) {
+              builder: (dialogCtx, child) {
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Theme(
                   data: Theme.of(context).copyWith(
@@ -276,7 +276,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
 
               ref.invalidate(studentDuesProvider);
               if (mounted) {
-                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -374,7 +374,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<int>(
-                                  value: selectedMonth,
+                                  initialValue: selectedMonth,
                                   style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                                   decoration: const InputDecoration(labelText: 'Month'),
                                   items: List.generate(12, (i) => i + 1)
@@ -391,7 +391,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                               const SizedBox(width: AppTheme.space12),
                               Expanded(
                                 child: DropdownButtonFormField<int>(
-                                  value: selectedYear,
+                                  initialValue: selectedYear,
                                   style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                                   decoration: const InputDecoration(labelText: 'Year'),
                                   items: [selectedYear - 1, selectedYear, selectedYear + 1]
@@ -407,7 +407,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                           const SizedBox(height: AppTheme.space12),
                           // Payment Mode
                           DropdownButtonFormField<String>(
-                            value: selectedMode,
+                            initialValue: selectedMode,
                             style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Payment Mode'),
                             items: const [

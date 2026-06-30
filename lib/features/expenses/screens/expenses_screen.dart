@@ -261,7 +261,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (dialogCtx, setState) {
 
 
           Future<void> pickImage(ImageSource source) async {
@@ -275,11 +275,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
           Future<void> pickDate() async {
             final picked = await showDatePicker(
-              context: context,
+              context: dialogCtx,
               initialDate: expenseDate,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
-              builder: (context, child) {
+              builder: (dialogCtx, child) {
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Theme(
                   data: Theme.of(context).copyWith(
@@ -330,7 +330,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
               ref.invalidate(expensesListProvider);
               if (mounted) {
-                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -390,7 +390,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           DropdownButtonFormField<String>(
-                            value: selectedCategory,
+                            initialValue: selectedCategory,
                             style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Category *'),
                             items: const [
@@ -592,16 +592,16 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (dialogCtx, setState) {
 
 
           Future<void> pickDate() async {
             final picked = await showDatePicker(
-              context: context,
+              context: dialogCtx,
               initialDate: expenseDate,
               firstDate: DateTime(2020),
               lastDate: DateTime.now(),
-              builder: (context, child) {
+              builder: (dialogCtx, child) {
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return Theme(
                   data: Theme.of(context).copyWith(
@@ -649,7 +649,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
               ref.invalidate(expensesListProvider);
               if (mounted) {
-                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -709,7 +709,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           DropdownButtonFormField<String>(
-                            value: selectedCategory,
+                            initialValue: selectedCategory,
                             style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Category *'),
                             items: const [

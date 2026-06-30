@@ -344,7 +344,7 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _selectedSport,
+                            initialValue: _selectedSport,
                             style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                             decoration: const InputDecoration(labelText: 'Sport *'),
                             items: const [
@@ -389,7 +389,7 @@ class _BatchFormScreenState extends ConsumerState<BatchFormScreen> {
                       error: (err, stack) => Text('Error loading coaches: $err', style: AppTheme.caption.copyWith(color: AppTheme.errorRed)),
                       data: (coaches) {
                         return DropdownButtonFormField<String>(
-                          value: _selectedCoachId,
+                          initialValue: _selectedCoachId,
                           style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                           decoration: const InputDecoration(labelText: 'Assigned Coach'),
                           items: [
