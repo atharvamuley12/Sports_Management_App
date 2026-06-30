@@ -1,3 +1,5 @@
+import '../../core/utils/date_utils.dart';
+
 class Payment {
   final String id;
   final String studentId;
@@ -26,7 +28,7 @@ class Payment {
       id: json['id'] as String,
       studentId: json['student_id'] as String,
       amount: (json['amount'] as num).toDouble(),
-      paymentDate: DateTime.parse(json['payment_date'] as String),
+      paymentDate: DateUtilsHelper.parseSqlDate(json['payment_date'] as String),
       month: json['month'] as int,
       year: json['year'] as int,
       mode: json['mode'] as String,
@@ -105,7 +107,7 @@ class StudentDues {
       studentId: json['student_id'] as String,
       name: json['name'] as String,
       monthlyFee: (json['monthly_fee'] as num).toDouble(),
-      joinDate: DateTime.parse(json['join_date'] as String),
+      joinDate: DateUtilsHelper.parseSqlDate(json['join_date'] as String),
       status: json['status'] as String,
       batchId: json['batch_id'] as String?,
       monthsSinceJoin: json['months_since_join'] as int,

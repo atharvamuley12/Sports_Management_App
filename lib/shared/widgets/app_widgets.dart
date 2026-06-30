@@ -402,17 +402,21 @@ class AppSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final headerColor = isDark ? AppTheme.textMuted : AppTheme.textMutedLight;
+
     return Row(
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 16, color: AppTheme.textMuted),
+          Icon(icon, size: 16, color: headerColor),
           const SizedBox(width: AppTheme.space8),
         ],
         Expanded(
           child: Text(
             title,
             style: AppTheme.overline.copyWith(
-              color: AppTheme.textMuted,
+              color: headerColor,
               fontSize: 12,
             ),
           ),
@@ -483,35 +487,54 @@ class AppStatusChip extends StatelessWidget {
     icon: Icons.lock_rounded,
   );
 
-  factory AppStatusChip.sport(String sport) => AppStatusChip(
-    label: sport.toUpperCase(),
-    color: sport == 'cricket' ? AppTheme.accentLime : AppTheme.accentTeal,
-    icon: sport == 'cricket' ? Icons.sports_cricket : Icons.sports_soccer,
-  );
+  factory AppStatusChip.sport(String sport) {
+    final sportLower = sport.toLowerCase();
+    return AppStatusChip(
+      label: sport.toUpperCase(),
+      color: sportLower == 'cricket'
+          ? AppTheme.accentLime
+          : (sportLower == 'chess' ? AppTheme.accentPurple : AppTheme.accentTeal),
+      icon: sportLower == 'cricket'
+          ? Icons.sports_cricket
+          : (sportLower == 'chess' ? Icons.grid_on : Icons.sports_soccer),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    Color displayColor = color;
+    if (!isDark) {
+      if (color == AppTheme.accentLime) {
+        displayColor = AppTheme.accentLimeDark;
+      } else if (color == AppTheme.accentTeal) {
+        displayColor = AppTheme.accentTealDark;
+      } else if (color == AppTheme.accentPurple) {
+        displayColor = AppTheme.accentPurpleDark;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppTheme.space10,
         vertical: AppTheme.space4,
       ),
       decoration: BoxDecoration(
-        color: filled ? color : color.withValues(alpha: 0.1),
+        color: filled ? displayColor : displayColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppTheme.radius8),
-        border: filled ? null : Border.all(color: color.withValues(alpha: 0.2)),
+        border: filled ? null : Border.all(color: displayColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 12, color: filled ? Colors.black : color),
+            Icon(icon, size: 12, color: filled ? Colors.black : displayColor),
             const SizedBox(width: AppTheme.space4),
           ],
           Text(
             label,
             style: AppTheme.overline.copyWith(
-              color: filled ? Colors.black : color,
+              color: filled ? Colors.black : displayColor,
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),

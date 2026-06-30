@@ -87,16 +87,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   }
 
   void _showSuccessSnackBar(String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             const Icon(Icons.check_circle_outline, color: AppTheme.successGreen, size: 20),
             const SizedBox(width: AppTheme.space12),
-            Expanded(child: Text(message, style: AppTheme.body2.copyWith(color: AppTheme.textPrimary))),
+            Expanded(
+              child: Text(
+                message,
+                style: AppTheme.body2.copyWith(
+                  color: isDark ? AppTheme.textPrimary : AppTheme.textPrimaryLight,
+                ),
+              ),
+            ),
           ],
         ),
-        backgroundColor: AppTheme.darkCard,
+        backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radius12)),
       ),
@@ -106,8 +114,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAdmin = _selectedRole == 'admin';
-    final roleColor = isAdmin ? AppTheme.accentLime : AppTheme.accentTeal;
+    final roleColor = isAdmin
+        ? (isDark ? AppTheme.accentLime : AppTheme.accentLimeDark)
+        : (isDark ? AppTheme.accentTeal : AppTheme.accentTealDark);
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -195,13 +206,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         const SizedBox(height: AppTheme.space20),
         ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
-            colors: [Colors.white, roleColor.withValues(alpha: 0.8)],
+            colors: [Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimaryLight, roleColor.withValues(alpha: 0.8)],
           ).createShader(bounds),
           child: Text(
             'Sports Academy',
             style: AppTheme.heading1.copyWith(
               fontSize: 32,
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimaryLight,
               letterSpacing: -1,
             ),
           ),
@@ -210,25 +221,29 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         Text(
           'Welcome back! Sign in to continue',
           textAlign: TextAlign.center,
-          style: AppTheme.body2.copyWith(letterSpacing: 0.2),
+          style: AppTheme.body2.copyWith(
+            color: Theme.of(context).brightness == Brightness.dark ? AppTheme.textSecondary : AppTheme.textSecondaryLight,
+            letterSpacing: 0.2,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildFormCard(AuthStateData authState, Color roleColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(AppTheme.space24),
       decoration: BoxDecoration(
-        color: AppTheme.darkCard.withValues(alpha: 0.85),
+        color: (isDark ? AppTheme.darkCard : AppTheme.lightCard).withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(AppTheme.radius24),
         border: Border.all(
-          color: AppTheme.darkBorder.withValues(alpha: 0.6),
+          color: (isDark ? AppTheme.darkBorder : AppTheme.lightBorder).withValues(alpha: 0.6),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.05),
             blurRadius: 40,
             offset: const Offset(0, 12),
           ),
@@ -292,13 +307,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   }
 
   Widget _buildRoleSwitcher(Color roleColor) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 50,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppTheme.darkBg,
+        color: isDark ? AppTheme.darkBg : AppTheme.lightSurface,
         borderRadius: BorderRadius.circular(AppTheme.radius14),
-        border: Border.all(color: AppTheme.darkBorder, width: 1),
+        border: Border.all(color: isDark ? AppTheme.darkBorder : AppTheme.lightBorder, width: 1),
       ),
       child: Row(
         children: [
@@ -329,6 +345,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedColor = isDark ? AppTheme.textMuted : AppTheme.textMutedLight;
     return Expanded(
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
@@ -363,14 +381,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 Icon(
                   icon,
                   size: 15,
-                  color: isSelected ? Colors.black : AppTheme.textMuted,
+                  color: isSelected ? (isDark ? Colors.black : Colors.white) : unselectedColor,
                 ),
                 const SizedBox(width: AppTheme.space6),
                 Text(
                   label,
                   style: AppTheme.labelSmall.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: isSelected ? Colors.black : AppTheme.textMuted,
+                    color: isSelected ? (isDark ? Colors.black : Colors.white) : unselectedColor,
                   ),
                 ),
               ],
@@ -629,6 +647,7 @@ class _AnimatedBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: controller,
       builder: (context, child) {
@@ -636,6 +655,7 @@ class _AnimatedBackground extends StatelessWidget {
           painter: _BgPainter(
             progress: controller.value,
             accentColor: roleColor,
+            isDark: isDark,
           ),
           size: MediaQuery.of(context).size,
         );
@@ -647,15 +667,16 @@ class _AnimatedBackground extends StatelessWidget {
 class _BgPainter extends CustomPainter {
   final double progress;
   final Color accentColor;
+  final bool isDark;
 
-  _BgPainter({required this.progress, required this.accentColor});
+  _BgPainter({required this.progress, required this.accentColor, required this.isDark});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Dark background
+    // Dynamic background
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = AppTheme.darkBg,
+      Paint()..color = isDark ? AppTheme.darkBg : AppTheme.lightBg,
     );
 
     // Animated gradient orbs
@@ -692,7 +713,7 @@ class _BgPainter extends CustomPainter {
 
     // Subtle grid pattern
     final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.012)
+      ..color = (isDark ? Colors.white : Colors.black).withValues(alpha: 0.012)
       ..strokeWidth = 0.5;
 
     for (double x = 0; x < size.width; x += 60) {

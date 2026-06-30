@@ -59,6 +59,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.errorRed.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+              ),
+              child: const Icon(Icons.logout_rounded, color: AppTheme.errorRed, size: 20),
+            ),
+            const SizedBox(width: AppTheme.space12),
+            Text('Sign Out', style: AppTheme.heading3),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to sign out of your account?',
+          style: AppTheme.body2,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(authControllerProvider.notifier).signOut();
+            },
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
@@ -100,6 +143,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () {
                 context.push('/change-password');
               },
+            ),
+            const SizedBox(height: AppTheme.space12),
+            _buildActionTile(
+              icon: Icons.logout_rounded,
+              title: 'Sign Out',
+              subtitle: 'Disconnect from your account',
+              color: AppTheme.errorRed,
+              onTap: () => _showLogoutDialog(context),
             ),
             const SizedBox(height: AppTheme.space24),
 
@@ -177,7 +228,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             Switch(
               value: isDark,
-              activeColor: AppTheme.accentLime,
+              activeThumbColor: AppTheme.accentLime,
               onChanged: (val) {
                 ref.read(themeModeProvider.notifier).state =
                     val ? ThemeMode.dark : ThemeMode.light;

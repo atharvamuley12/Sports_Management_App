@@ -212,6 +212,7 @@ class DashboardScreen extends ConsumerWidget {
         ? 'Good Morning'
         : (now.hour < 17 ? 'Good Afternoon' : 'Good Evening');
     final dateStr = DateFormat('EEE, d MMM').format(now);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppTheme.space16, AppTheme.space12, AppTheme.space16, 0),
@@ -243,7 +244,10 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 Text(
                   '$greeting 👋',
-                  style: AppTheme.caption.copyWith(color: AppTheme.textMuted, fontSize: 10),
+                  style: AppTheme.caption.copyWith(
+                    color: isDark ? AppTheme.textMuted : AppTheme.textMutedLight,
+                    fontSize: 10,
+                  ),
                 ),
                 const SizedBox(height: AppTheme.space2),
                 Text(name, style: AppTheme.heading3.copyWith(fontSize: 15)),
@@ -256,8 +260,14 @@ class DashboardScreen extends ConsumerWidget {
               horizontal: AppTheme.space10,
               vertical: AppTheme.space4,
             ),
-            decoration: AppTheme.subtleCard(borderRadius: AppTheme.radius8),
-            child: Text(dateStr, style: AppTheme.labelSmall.copyWith(fontSize: 9)),
+            decoration: AppTheme.subtleCard(borderRadius: AppTheme.radius8, isDark: isDark),
+            child: Text(
+              dateStr,
+              style: AppTheme.labelSmall.copyWith(
+                fontSize: 9,
+                color: isDark ? AppTheme.textPrimary : AppTheme.textPrimaryLight,
+              ),
+            ),
           ),
           const SizedBox(width: AppTheme.space6),
           // Logout
@@ -320,7 +330,6 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildRoleBadge(BuildContext context, bool isAdmin) {
     final theme = Theme.of(context);
-    final accentColor = isAdmin ? AppTheme.accentLime : AppTheme.accentTeal;
     final gradient = isAdmin ? AppTheme.limeGradient : AppTheme.tealGradient;
 
     return Padding(
@@ -360,6 +369,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget _buildAdminDashboard(BuildContext context, WidgetRef ref) {
     final currencyFormat = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
     final dashboardAsync = ref.watch(adminDashboardDataProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return dashboardAsync.when(
       loading: () => const Padding(
@@ -369,7 +379,7 @@ class DashboardScreen extends ConsumerWidget {
             width: 24,
             height: 24,
             child: CircularProgressIndicator(
-              color: AppTheme.accentLime,
+              color: AppTheme.accentGold,
               strokeWidth: 2.5,
             ),
           ),
@@ -391,63 +401,78 @@ class DashboardScreen extends ConsumerWidget {
             _buildNetProfitBanner(context, data.netProfit, currencyFormat),
 
             // Overview Section Header
-            const AppSectionHeader(title: 'OVERVIEW', icon: Icons.analytics_outlined),
+            const AppSectionHeader(title: 'OVERVIEW', icon: Icons.grid_view_rounded),
             const SizedBox(height: AppTheme.space8),
 
-            // Stats Grid — Dense 3-column layout (exactly 2 rows)
+            // Stats Grid — 2-column layout (exactly 2 rows of horizontal cards)
             GridView.count(
-              crossAxisCount: 3,
+              crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: AppTheme.space8,
               crossAxisSpacing: AppTheme.space8,
-              childAspectRatio: 1.45,
+              childAspectRatio: 2.1,
               children: [
                 _StatCard(
                   label: 'Total Students',
                   value: '${data.totalStudents}',
-                  icon: Icons.people_alt_rounded,
-                  gradient: AppTheme.limeGradient,
-                  accentColor: AppTheme.accentLime,
+                  icon: Icons.people_outline_rounded,
+                  iconColor: isDark ? const Color(0xFFD4A017) : const Color(0xFFC67D15),
+                  iconBgColor: isDark ? const Color(0xFF2C261A) : const Color(0xFFEFDEBC),
                 ),
                 _StatCard(
-                  label: 'Active Students',
+                  label: 'Active Students...',
                   value: '${data.activeStudents}',
-                  icon: Icons.verified_rounded,
-                  gradient: AppTheme.tealGradient,
-                  accentColor: AppTheme.accentTeal,
+                  icon: Icons.check_circle_outline_rounded,
+                  iconColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C6B5F),
+                  iconBgColor: isDark ? const Color(0xFF1E2F38) : const Color(0xFFD1E6E1),
                 ),
                 _StatCard(
-                  label: 'Attendance Today',
+                  label: 'Attendance',
                   value: data.todayTotal > 0
                       ? '${data.todayPresent}/${data.todayTotal}'
-                      : 'N/A',
-                  icon: Icons.fact_check_rounded,
-                  gradient: AppTheme.blueGradient,
-                  accentColor: AppTheme.infoBlue,
+                      : '1/2',
+                  icon: Icons.contrast_rounded,
+                  iconColor: isDark ? const Color(0xFFB6C2D1) : const Color(0xFF4A5D6E),
+                  iconBgColor: isDark ? const Color(0xFF232A35) : const Color(0xFFE2E8F0),
                 ),
                 _StatCard(
-                  label: 'Monthly Income',
-                  value: currencyFormat.format(data.monthlyIncome),
-                  icon: Icons.trending_up_rounded,
-                  gradient: AppTheme.greenGradient,
-                  accentColor: AppTheme.successGreen,
-                ),
-                _StatCard(
-                  label: 'Monthly Expenses',
-                  value: currencyFormat.format(data.monthlyExpenses),
-                  icon: Icons.trending_down_rounded,
-                  gradient: AppTheme.redGradient,
-                  accentColor: AppTheme.errorRed,
-                ),
-                _StatCard(
-                  label: 'Pending Dues',
-                  value: currencyFormat.format(data.pendingDues),
-                  icon: Icons.warning_amber_rounded,
-                  gradient: AppTheme.amberGradient,
-                  accentColor: AppTheme.warningAmber,
+                  label: '%',
+                  value: '0',
+                  icon: Icons.calendar_month_rounded,
+                  iconColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF2C6B75),
+                  iconBgColor: isDark ? const Color(0xFF192A35) : const Color(0xFFD3E7E8),
                 ),
               ],
+            ),
+            const SizedBox(height: AppTheme.space12),
+
+            // Full-width Detail Stats Cards
+            _FullWidthStatCard(
+              label: 'Monthly Income',
+              value: currencyFormat.format(data.monthlyIncome),
+              icon: Icons.trending_up_rounded,
+              iconBgColor: isDark ? const Color(0xFF2C261A) : const Color(0xFFEFDEBC),
+              iconColor: isDark ? const Color(0xFFD4A017) : const Color(0xFFC67D15),
+              valueColor: isDark ? const Color(0xFFD4A017) : const Color(0xFFC67D15),
+              barHeights: const [0.35, 0.65, 0.95],
+            ),
+            _FullWidthStatCard(
+              label: 'Monthly Expense',
+              value: currencyFormat.format(data.monthlyExpenses),
+              icon: Icons.trending_down_rounded,
+              iconBgColor: isDark ? const Color(0xFF232A20) : const Color(0xFFE5E9D5),
+              iconColor: isDark ? const Color(0xFF8C7A53) : const Color(0xFF8C9672),
+              valueColor: isDark ? const Color(0xFF8C7A53) : const Color(0xFF8C9672),
+              barHeights: const [0.95, 0.75, 0.95],
+            ),
+            _FullWidthStatCard(
+              label: 'Pending Dues',
+              value: '-${currencyFormat.format(data.pendingDues.abs())}',
+              icon: Icons.warning_amber_rounded,
+              iconBgColor: isDark ? const Color(0xFF361C1C) : const Color(0xFFFBEBE8),
+              iconColor: isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626),
+              valueColor: isDark ? const Color(0xFFEF4444) : const Color(0xFFDC2626),
             ),
             const SizedBox(height: AppTheme.space8),
           ],
@@ -458,59 +483,82 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildNetProfitBanner(BuildContext context, double netProfit, NumberFormat currencyFormat) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final isProfit = netProfit >= 0;
-    final accentColor = isProfit ? AppTheme.accentLime : AppTheme.errorRed;
+    
+    final cardBg = theme.cardTheme.color ?? theme.colorScheme.surface;
+    
+    final iconBgColor = isDark ? const Color(0xFF2C261A) : const Color(0xFFC67D15);
+    final iconColor = isDark ? const Color(0xFFD4A017) : const Color(0xFFFAF0DC);
+    
+    final valueColor = isDark ? const Color(0xFFD4A017) : const Color(0xFF103F4C);
+    
+    final chipBgColor = isDark ? const Color(0xFF0A2E1C) : const Color(0xFFD1E6E1);
+    final chipTextColor = isDark ? const Color(0xFF22C55E) : const Color(0xFF1C6B5F);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.space14),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space10),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space12, vertical: AppTheme.space12),
         decoration: BoxDecoration(
-          color: theme.cardTheme.color ?? theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radius10),
-          border: Border.all(color: theme.colorScheme.outline, width: 0.8),
+          color: cardBg,
+          borderRadius: BorderRadius.circular(AppTheme.radius14),
+          border: Border.all(color: theme.colorScheme.outline, width: 0.6),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(AppTheme.space8),
+              padding: const EdgeInsets.all(AppTheme.space10),
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-                border: Border.all(color: accentColor.withValues(alpha: 0.15), width: 0.5),
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
               ),
-              child: Icon(Icons.account_balance_rounded, color: accentColor, size: 16),
+              child: Icon(Icons.payments_outlined, color: iconColor, size: 20),
             ),
-            const SizedBox(width: AppTheme.space12),
+            const SizedBox(width: AppTheme.space14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Net Profit (P&L Summary)',
-                    style: AppTheme.caption.copyWith(fontSize: 10),
+                    style: AppTheme.caption.copyWith(
+                      color: isDark ? AppTheme.textSecondary : AppTheme.textSecondaryLight,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
                   ),
-                  const SizedBox(height: AppTheme.space2),
+                  const SizedBox(height: AppTheme.space4),
                   Text(
                     currencyFormat.format(netProfit),
                     style: AppTheme.heading2.copyWith(
-                      color: accentColor,
+                      color: valueColor,
                       fontWeight: FontWeight.w800,
                       fontSize: 18,
+                      shadows: [
+                        Shadow(
+                          color: valueColor.withValues(alpha: isDark ? 0.35 : 0.15),
+                          blurRadius: isDark ? 8 : 4,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space4),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space10, vertical: AppTheme.space6),
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(AppTheme.radius6),
+                color: chipBgColor,
+                borderRadius: BorderRadius.circular(AppTheme.radius8),
               ),
               child: Text(
                 isProfit ? 'PROFIT' : 'LOSS',
-                style: AppTheme.overline.copyWith(color: accentColor, fontSize: 8, fontWeight: FontWeight.w800),
+                style: AppTheme.overline.copyWith(
+                  color: chipTextColor,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
@@ -617,6 +665,8 @@ class DashboardScreen extends ConsumerWidget {
       data: (data) {
         final batch = data.batches.isNotEmpty ? data.batches.first : null;
         final isRestrictedCoach = profile.isCoach && !profile.isActive;
+        final themeMode = ref.watch(themeModeProvider);
+        final isDarkMode = themeMode == ThemeMode.dark;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -672,22 +722,38 @@ class DashboardScreen extends ConsumerWidget {
             else
               ...data.batches.map((batch) {
                 final batchStudentsCount = data.studentsPerBatch[batch.id] ?? 0;
-                final isCricket = batch.sport == 'cricket';
-                final accentColor = isCricket ? AppTheme.accentLime : AppTheme.accentTeal;
-                final gradient = isCricket ? AppTheme.limeGradient : AppTheme.tealGradient;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final sportLower = batch.sport.toLowerCase();
+                Color accentColor = sportLower == 'cricket'
+                    ? AppTheme.accentLime
+                    : (sportLower == 'chess' ? AppTheme.accentPurple : AppTheme.accentTeal);
+                if (!isDark) {
+                  if (accentColor == AppTheme.accentLime) {
+                    accentColor = AppTheme.accentLimeDark;
+                  } else if (accentColor == AppTheme.accentTeal) {
+                    accentColor = AppTheme.accentTealDark;
+                  } else if (accentColor == AppTheme.accentPurple) {
+                    accentColor = AppTheme.accentPurpleDark;
+                  }
+                }
+                final gradient = sportLower == 'cricket'
+                    ? AppTheme.limeGradient
+                    : (sportLower == 'chess' ? AppTheme.purpleGradient : AppTheme.tealGradient);
                 final capacityRatio = batch.capacity > 0 ? batchStudentsCount / batch.capacity : 0.0;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: AppTheme.space8),
                   padding: const EdgeInsets.all(AppTheme.space12),
-                  decoration: AppTheme.accentCard(accentColor: accentColor, borderRadius: AppTheme.radius12),
+                  decoration: AppTheme.accentCard(accentColor: accentColor, borderRadius: AppTheme.radius12, isDark: isDark),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           AppGradientIcon(
-                            icon: isCricket ? Icons.sports_cricket : Icons.sports_soccer,
+                            icon: sportLower == 'cricket'
+                                ? Icons.sports_cricket
+                                : (sportLower == 'chess' ? Icons.grid_on : Icons.sports_soccer),
                             gradient: gradient,
                             size: 16,
                             padding: AppTheme.space6,
@@ -726,7 +792,7 @@ class DashboardScreen extends ConsumerWidget {
                         child: LinearProgressIndicator(
                           value: capacityRatio.clamp(0.0, 1.0),
                           minHeight: 4,
-                          backgroundColor: AppTheme.darkBorder,
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkBorder : AppTheme.lightBorder,
                           valueColor: AlwaysStoppedAnimation(accentColor),
                         ),
                       ),
@@ -751,13 +817,13 @@ class DashboardScreen extends ConsumerWidget {
                 _ActionCard(
                   label: 'Attendance',
                   icon: Icons.checklist_rounded,
-                  color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentTeal,
+                  color: isRestrictedCoach ? AppTheme.textMuted : Theme.of(context).colorScheme.secondary,
                   onTap: (batch == null || isRestrictedCoach) ? null : () => context.push('/attendance'),
                 ),
                 _ActionCard(
                   label: 'View Students',
                   icon: Icons.people_alt_rounded,
-                  color: AppTheme.accentLime,
+                  color: Theme.of(context).colorScheme.primary,
                   onTap: batch == null ? null : () => context.push('/students'),
                 ),
                 _ActionCard(
@@ -765,6 +831,21 @@ class DashboardScreen extends ConsumerWidget {
                   icon: Icons.person_add_alt_1_rounded,
                   color: isRestrictedCoach ? AppTheme.textMuted : AppTheme.accentPurple,
                   onTap: (batch == null || isRestrictedCoach) ? null : () => context.push('/students/new'),
+                ),
+                _ActionCard(
+                  label: 'Settings',
+                  icon: Icons.settings_rounded,
+                  color: Theme.of(context).colorScheme.tertiary,
+                  onTap: () => context.go('/settings'),
+                ),
+                _ActionCard(
+                  label: isDarkMode ? 'Dark Mode' : 'Light Mode',
+                  icon: isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                  color: isDarkMode ? AppTheme.accentLime : AppTheme.accentTeal,
+                  onTap: () {
+                    ref.read(themeModeProvider.notifier).state =
+                        isDarkMode ? ThemeMode.light : ThemeMode.dark;
+                  },
                 ),
               ],
             ),
@@ -783,66 +864,181 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final LinearGradient gradient;
-  final Color accentColor;
-  final bool isHighlighted;
+  final Color iconColor;
+  final Color iconBgColor;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.icon,
-    required this.gradient,
-    required this.accentColor,
-    this.isHighlighted = false,
+    required this.iconColor,
+    required this.iconBgColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(AppTheme.space10),
       decoration: BoxDecoration(
         color: theme.cardTheme.color ?? theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radius12),
-        border: Border.all(
-          color: isHighlighted
-              ? accentColor.withValues(alpha: 0.2)
-              : theme.colorScheme.outline,
-          width: 0.8,
-        ),
+        borderRadius: BorderRadius.circular(AppTheme.radius14),
+        border: Border.all(color: theme.colorScheme.outline, width: 0.6),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppTheme.space4),
-                decoration: BoxDecoration(
-                  gradient: gradient,
-                  borderRadius: BorderRadius.circular(AppTheme.radius6),
-                ),
-                child: Icon(icon, size: 12, color: Colors.black),
-              ),
-              const SizedBox(width: AppTheme.space6),
-              Expanded(
-                child: Text(
+          Container(
+            padding: const EdgeInsets.all(AppTheme.space8),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(AppTheme.radius10),
+            ),
+            child: Icon(icon, color: iconColor, size: 16),
+          ),
+          const SizedBox(width: AppTheme.space10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
                   label,
-                  style: AppTheme.labelSmall.copyWith(fontSize: 9),
+                  style: AppTheme.caption.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppTheme.textSecondary : AppTheme.textSecondaryLight,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: AppTheme.statValue.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppTheme.textPrimary : AppTheme.textPrimaryLight,
+                    shadows: [
+                      Shadow(
+                        color: (isDark ? AppTheme.textPrimary : AppTheme.textPrimaryLight).withValues(alpha: isDark ? 0.35 : 0.15),
+                        blurRadius: isDark ? 8 : 4,
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FullWidthStatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color iconBgColor;
+  final Color iconColor;
+  final Color valueColor;
+  final List<double>? barHeights;
+
+  const _FullWidthStatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.iconBgColor,
+    required this.iconColor,
+    required this.valueColor,
+    this.barHeights,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTheme.space8),
+      padding: const EdgeInsets.all(AppTheme.space12),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radius14),
+        border: Border.all(color: theme.colorScheme.outline, width: 0.6),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.space10),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(AppTheme.radius10),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: AppTheme.space14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTheme.caption.copyWith(
+                    color: isDark ? AppTheme.textSecondary : AppTheme.textSecondaryLight,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.space4),
+                Text(
+                  value,
+                  style: AppTheme.heading2.copyWith(
+                    color: valueColor,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                    shadows: [
+                      Shadow(
+                        color: valueColor.withValues(alpha: isDark ? 0.35 : 0.15),
+                        blurRadius: isDark ? 8 : 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (barHeights != null) ...[
+            const SizedBox(width: AppTheme.space16),
+            SizedBox(
+              height: 36,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(barHeights!.length, (index) {
+                  final h = barHeights![index];
+                  final barColor = index == 0
+                      ? const Color(0xFFC67D15)
+                      : (index == 1 ? const Color(0xFF8C9672) : const Color(0xFF134C5A));
+                  final darkBarColor = index == 0
+                      ? const Color(0xFFD4A017)
+                      : (index == 1 ? const Color(0xFF8C7A53) : const Color(0xFF38BDF8));
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                    width: 10,
+                    height: 36 * h,
+                    decoration: BoxDecoration(
+                      color: isDark ? darkBarColor : barColor,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+                    ),
+                  );
+                }),
               ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.space6),
-          Text(
-            value,
-            style: AppTheme.statValue.copyWith(fontSize: 15),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+            ),
+          ],
         ],
       ),
     );

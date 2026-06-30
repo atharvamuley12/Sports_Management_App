@@ -101,7 +101,7 @@ class SportsAcademyApp extends ConsumerWidget {
         final isMobile = defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android;
 
         return Container(
-          color: isDark ? const Color(0xFF090A0F) : const Color(0xFFF1F5F9),
+          color: isDark ? const Color(0xFF0C0D0E) : const Color(0xFFE5D9C0),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 395),

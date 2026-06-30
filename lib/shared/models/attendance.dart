@@ -1,3 +1,5 @@
+import '../../core/utils/date_utils.dart';
+
 class Attendance {
   final String id;
   final String studentId;
@@ -19,7 +21,7 @@ class Attendance {
     return Attendance(
       id: json['id'] as String,
       studentId: json['student_id'] as String,
-      date: DateTime.parse(json['date'] as String),
+      date: DateUtilsHelper.parseSqlDate(json['date'] as String),
       status: json['status'] as String,
       markedBy: json['marked_by'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),

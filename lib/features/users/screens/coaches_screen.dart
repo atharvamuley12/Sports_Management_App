@@ -31,13 +31,11 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddCoachDialog,
-        backgroundColor: AppTheme.accentLime,
-        foregroundColor: Colors.black,
         child: const Icon(Icons.add_rounded, size: 24),
       ),
       body: RefreshIndicator(
-        color: AppTheme.accentLime,
-        backgroundColor: AppTheme.darkCard,
+        color: Theme.of(context).colorScheme.primary,
+        backgroundColor: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
         onRefresh: () async {
           ref.invalidate(coachesListProvider);
         },
@@ -78,11 +76,11 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: AppTheme.accentLime.withValues(alpha: 0.08),
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(AppTheme.radius12),
-                            border: Border.all(color: AppTheme.accentLime.withValues(alpha: 0.15)),
+                            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)),
                           ),
-                          child: const Icon(Icons.sports_rounded, color: AppTheme.accentLime, size: 20),
+                          child: Icon(Icons.sports_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                         ),
                         const SizedBox(width: AppTheme.space14),
                         Expanded(
@@ -130,7 +128,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                           children: [
                             Switch(
                               value: coach.isActive,
-                              activeColor: AppTheme.accentLime,
+                              activeColor: Theme.of(context).colorScheme.primary,
                               onChanged: (val) async {
                                 try {
                                   final repo = ref.read(profileRepositoryProvider);
@@ -141,9 +139,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                                       SnackBar(
                                         content: Text(
                                           'Coach status updated!',
-                                          style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                                          style: AppTheme.body2.copyWith(
+                                            color: Theme.of(context).brightness == Brightness.dark
+                                                ? AppTheme.textPrimary
+                                                : AppTheme.textPrimaryLight,
+                                          ),
                                         ),
-                                        backgroundColor: AppTheme.darkCard,
+                                        backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                                       ),
                                     );
                                   }
@@ -160,7 +162,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                                 color: Theme.of(context).textTheme.bodyMedium?.color ?? AppTheme.textSecondary,
                               ),
                               surfaceTintColor: Colors.transparent,
-                              color: Theme.of(context).cardTheme.color ?? AppTheme.darkCard,
+                              color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
                               onSelected: (val) {
                                 if (val == 'edit') {
                                   _showEditCoachDialog(coach);
@@ -206,15 +208,16 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
   }
 
   void _showEditCoachDialog(Profile coach) {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController(text: coach.fullName);
+    final phoneController = TextEditingController(text: coach.phone ?? '');
+    final emailController = TextEditingController(text: coach.email ?? '');
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          final formKey = GlobalKey<FormState>();
-          final nameController = TextEditingController(text: coach.fullName);
-          final phoneController = TextEditingController(text: coach.phone ?? '');
-          final emailController = TextEditingController(text: coach.email ?? '');
 
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) return;
@@ -239,9 +242,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                   SnackBar(
                     content: Text(
                       'Coach profile updated successfully!',
-                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                      style: AppTheme.body2.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.textPrimary
+                            : AppTheme.textPrimaryLight,
+                      ),
                     ),
-                    backgroundColor: AppTheme.darkCard,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                   ),
                 );
               }
@@ -262,10 +269,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                 Container(
                   padding: const EdgeInsets.all(AppTheme.space8),
                   decoration: BoxDecoration(
-                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radius10),
                   ),
-                  child: const Icon(Icons.edit_rounded, color: AppTheme.accentLime, size: 20),
+                  child: Icon(Icons.edit_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                 ),
                 const SizedBox(width: AppTheme.space12),
                 Text('Edit Details', style: AppTheme.heading3),
@@ -326,8 +333,8 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               ElevatedButton(
                 onPressed: _isSaving ? null : submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentLime,
-                  foregroundColor: Colors.black,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
                 ),
                 child: const Text('Save Details'),
               ),
@@ -339,13 +346,14 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
   }
 
   void _showResetPasswordDialog(Profile coach) {
+    final formKey = GlobalKey<FormState>();
+    final passwordController = TextEditingController();
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          final formKey = GlobalKey<FormState>();
-          final passwordController = TextEditingController();
 
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) return;
@@ -364,9 +372,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                   SnackBar(
                     content: Text(
                       'Password reset successfully for ${coach.fullName}!',
-                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                      style: AppTheme.body2.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.textPrimary
+                            : AppTheme.textPrimaryLight,
+                      ),
                     ),
-                    backgroundColor: AppTheme.darkCard,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                   ),
                 );
               }
@@ -387,10 +399,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                 Container(
                   padding: const EdgeInsets.all(AppTheme.space8),
                   decoration: BoxDecoration(
-                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radius10),
                   ),
-                  child: const Icon(Icons.lock_reset_rounded, color: AppTheme.accentLime, size: 20),
+                  child: Icon(Icons.lock_reset_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                 ),
                 const SizedBox(width: AppTheme.space12),
                 Expanded(
@@ -444,8 +456,8 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               ElevatedButton(
                 onPressed: _isSaving ? null : submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentLime,
-                  foregroundColor: Colors.black,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
                 ),
                 child: const Text('Reset Password'),
               ),
@@ -457,16 +469,17 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
   }
 
   void _showAddCoachDialog() {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final phoneController = TextEditingController();
+    final passwordController = TextEditingController();
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          final formKey = GlobalKey<FormState>();
-          final nameController = TextEditingController();
-          final emailController = TextEditingController();
-          final phoneController = TextEditingController();
-          final passwordController = TextEditingController();
 
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) return;
@@ -492,9 +505,13 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                   SnackBar(
                     content: Text(
                       'Coach user created successfully!',
-                      style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                      style: AppTheme.body2.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.textPrimary
+                            : AppTheme.textPrimaryLight,
+                      ),
                     ),
-                    backgroundColor: AppTheme.darkCard,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : AppTheme.lightCard,
                   ),
                 );
               }
@@ -515,10 +532,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                 Container(
                   padding: const EdgeInsets.all(AppTheme.space8),
                   decoration: BoxDecoration(
-                    color: AppTheme.accentLime.withValues(alpha: 0.1),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radius10),
                   ),
-                  child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.accentLime, size: 20),
+                  child: Icon(Icons.person_add_alt_1_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                 ),
                 const SizedBox(width: AppTheme.space12),
                 Text('Add Coach Account', style: AppTheme.heading3),
@@ -594,8 +611,8 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
               ElevatedButton(
                 onPressed: _isSaving ? null : submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.accentLime,
-                  foregroundColor: Colors.black,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
                 ),
                 child: const Text('Create Coach'),
               ),

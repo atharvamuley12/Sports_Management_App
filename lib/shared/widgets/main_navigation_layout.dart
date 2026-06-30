@@ -77,6 +77,12 @@ class MainNavigationLayout extends ConsumerWidget {
               activeIcon: Icons.fact_check_rounded,
               label: 'Attendance',
             ),
+            const _NavDestination(
+              route: '/settings',
+              icon: Icons.settings_outlined,
+              activeIcon: Icons.settings_rounded,
+              label: 'Settings',
+            ),
           ];
 
     // Determine current index
@@ -96,15 +102,18 @@ class MainNavigationLayout extends ConsumerWidget {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bottomNavBg = isDark ? const Color(0xFF0C0E12) : const Color(0xFF1B313F);
+    final activeColor = isDark ? const Color(0xFFD4A017) : const Color(0xFFE5B02E);
+    final inactiveColor = isDark ? AppTheme.textMuted : const Color(0xFFE5E7EB);
 
     return Scaffold(
       body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
+          color: bottomNavBg,
           border: Border(
             top: BorderSide(
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+              color: isDark ? AppTheme.darkBorder : const Color(0xFF284456),
               width: 0.8,
             ),
           ),
@@ -117,8 +126,6 @@ class MainNavigationLayout extends ConsumerWidget {
               children: List.generate(destinations.length, (index) {
                 final dest = destinations[index];
                 final isSelected = index == currentIndex;
-                final activeColor = isDark ? AppTheme.accentLime : AppTheme.accentLimeDark;
-                final inactiveColor = isDark ? AppTheme.textMuted : AppTheme.textMutedLight;
 
                 return GestureDetector(
                   onTap: () => context.go(dest.route),
