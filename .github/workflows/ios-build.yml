@@ -10,8 +10,16 @@ jobs:
           channel: 'stable'
       - name: Install dependencies
         run: flutter pub get
+
+      # Generates the file using your GitHub repository secrets
+      - name: Create config.json file
+        run: |
+          echo '{"SUPABASE_URL":"${{ secrets.SUPABASE_URL }}","SUPABASE_ANON_KEY":"${{ secrets.SUPABASE_ANON_KEY }}"}' > config.json
+
+      # Injects the config.json file directly into your build output
       - name: Build Unsigned iOS Archive
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --dart-define-from-file=config.json
+
       - name: Package Into IPA
         run: |
           mkdir Payload
