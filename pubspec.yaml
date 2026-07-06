@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_native_splash: ^2.4.1
   device_info_plus: 10.1.2
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.8.0
@@ -102,3 +103,9 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/images/app_logo.png"
   image_path: "assets/images/app_logo.png"
+
+flutter_native_splash:
+    color: "#FFFFFF" # Background color
+    image: assets/images/app_logo.png # Path to logo
+    android: true
+    ios: true
