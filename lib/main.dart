@@ -7,13 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router/router.dart';
 import 'core/theme/theme.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 bool _isAppConfigured = false;
 
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsFlutterBinding.ensureInitialized();
 
   // Retrieve environment variables compiled via --dart-define
   var supabaseUrl = const String.fromEnvironment('SUPABASE_URL');
@@ -68,9 +66,7 @@ void main() async {
       child: SportsAcademyApp(),
     ),
   );
-  FlutterNativeSplash.remove();
 }
-
 
 class SportsAcademyApp extends ConsumerWidget {
   const SportsAcademyApp({super.key});
