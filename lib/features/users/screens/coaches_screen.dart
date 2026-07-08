@@ -69,7 +69,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppTheme.space12),
                   child: AppCard(
-                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.space16,
+                      vertical: AppTheme.space12,
+                    ),
                     child: Row(
                       children: [
                         Container(
@@ -122,7 +125,6 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                             ],
                           ),
                         ),
-                        // Actions Group (Switch + PopupMenuButton)
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -218,9 +220,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setState) {
-
           Future<void> submit() async {
-            if (!formKey.currentState!.validate()) return;
+            if (!formKey.currentState!.validate()) {
+              return;
+            }
 
             setState(() {
               _isSaving = true;
@@ -280,51 +283,70 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
             ),
             content: _isSaving
                 ? const SizedBox(
-                    height: 100,
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
-                      ),
-                    ),
-                  )
+              height: 100,
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                ),
+              ),
+            )
                 : Form(
-                    key: formKey,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextFormField(
-                            controller: nameController,
-                            style: AppTheme.body1,
-                            decoration: const InputDecoration(labelText: 'Full Name *'),
-                            validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
-                          ),
-                          const SizedBox(height: AppTheme.space12),
-                          TextFormField(
-                            controller: emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            style: AppTheme.body1,
-                            decoration: const InputDecoration(labelText: 'Email Address *'),
-                            validator: (val) {
-                              if (val == null || val.trim().isEmpty) return 'Enter email';
-                              if (!val.contains('@')) return 'Enter a valid email';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: AppTheme.space12),
-                          TextFormField(
-                            controller: phoneController,
-                            keyboardType: TextInputType.phone,
-                            style: AppTheme.body1,
-                            decoration: const InputDecoration(labelText: 'Phone Number'),
-                          ),
-                        ],
-                      ),
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Full Name *'),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Enter name';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Email Address *'),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Enter email';
+                        }
+                        final emailRegex = RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$');
+                        if (!emailRegex.hasMatch(val.trim())) {
+                          return 'Enter a valid email address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Phone Number'),
+                      validator: (val) {
+                        if (val != null && val.trim().isNotEmpty) {
+                          final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+                          if (!phoneRegex.hasMatch(val.trim())) {
+                            return 'Enter a valid phone number (7-15 digits)';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: _isSaving ? null : () => Navigator.of(ctx).pop(),
@@ -354,9 +376,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setState) {
-
           Future<void> submit() async {
-            if (!formKey.currentState!.validate()) return;
+            if (!formKey.currentState!.validate()) {
+              return;
+            }
 
             setState(() {
               _isSaving = true;
@@ -416,38 +439,42 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
             ),
             content: _isSaving
                 ? const SizedBox(
-                    height: 100,
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
-                      ),
-                    ),
-                  )
+              height: 100,
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                ),
+              ),
+            )
                 : Form(
-                    key: formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextFormField(
-                          controller: passwordController,
-                          obscureText: true,
-                          style: AppTheme.body1,
-                          decoration: const InputDecoration(
-                            labelText: 'New Password *',
-                            hintText: 'Must be at least 6 characters',
-                          ),
-                          validator: (val) {
-                            if (val == null || val.isEmpty) return 'Enter password';
-                            if (val.length < 6) return 'Password must be at least 6 characters';
-                            return null;
-                          },
-                        ),
-                      ],
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: true,
+                    style: AppTheme.body1,
+                    decoration: const InputDecoration(
+                      labelText: 'New Password *',
+                      hintText: 'Must be at least 6 characters',
                     ),
+                    validator: (val) {
+                      if (val == null || val.isEmpty) {
+                        return 'Enter password';
+                      }
+                      if (val.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
                   ),
+                ],
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: _isSaving ? null : () => Navigator.of(ctx).pop(),
@@ -480,9 +507,10 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setState) {
-
           Future<void> submit() async {
-            if (!formKey.currentState!.validate()) return;
+            if (!formKey.currentState!.validate()) {
+              return;
+            }
 
             setState(() {
               _isSaving = true;
@@ -543,66 +571,90 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
             ),
             content: _isSaving
                 ? const SizedBox(
-                    height: 100,
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
-                      ),
-                    ),
-                  )
+              height: 100,
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accentLime),
+                ),
+              ),
+            )
                 : Form(
-                    key: formKey,
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextFormField(
-                            controller: nameController,
-                            style: AppTheme.body1,
-                            decoration: const InputDecoration(labelText: 'Full Name *'),
-                            validator: (val) => val == null || val.trim().isEmpty ? 'Enter name' : null,
-                          ),
-                          const SizedBox(height: AppTheme.space12),
-                          TextFormField(
-                            controller: emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            style: AppTheme.body1,
-                            decoration: const InputDecoration(labelText: 'Email Address *'),
-                            validator: (val) {
-                              if (val == null || val.trim().isEmpty) return 'Enter email';
-                              if (!val.contains('@')) return 'Enter a valid email';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: AppTheme.space12),
-                          TextFormField(
-                            controller: phoneController,
-                            keyboardType: TextInputType.phone,
-                            style: AppTheme.body1,
-                            decoration: const InputDecoration(labelText: 'Phone Number'),
-                          ),
-                          const SizedBox(height: AppTheme.space12),
-                          TextFormField(
-                            controller: passwordController,
-                            obscureText: true,
-                            style: AppTheme.body1,
-                            decoration: const InputDecoration(
-                              labelText: 'Temporary Password *',
-                              hintText: 'Must be at least 6 characters',
-                            ),
-                            validator: (val) {
-                              if (val == null || val.isEmpty) return 'Enter password';
-                              if (val.length < 6) return 'Password must be at least 6 characters';
-                              return null;
-                            },
-                          ),
-                        ],
-                      ),
+              key: formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Full Name *'),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Enter name';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Email Address *'),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Enter email';
+                        }
+
+                        final emailRegex = RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$');
+                        if (!emailRegex.hasMatch(val.trim())) {
+                          return 'Enter a valid email address';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Phone Number'),
+                      validator: (val) {
+                        if (val != null && val.trim().isNotEmpty) {
+                          final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+                          if (!phoneRegex.hasMatch(val.trim())) {
+                            return 'Enter a valid phone number (7-15 digits)';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: passwordController,
+                      obscureText: true,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(
+                        labelText: 'Temporary Password *',
+                        hintText: 'Must be at least 6 characters',
+                      ),
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return 'Enter password';
+                        }
+                        if (val.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: _isSaving ? null : () => Navigator.of(ctx).pop(),
