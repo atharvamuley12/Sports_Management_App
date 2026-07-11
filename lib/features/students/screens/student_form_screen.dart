@@ -10,6 +10,7 @@ import '../repositories/student_repository.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/widgets/app_widgets.dart';
+import 'student_list_screen.dart';
 
 final batchesListProvider = FutureProvider.autoDispose<List<Batch>>((ref) async {
   final batchRepo = ref.watch(batchRepositoryProvider);
@@ -29,6 +30,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _parentNameController = TextEditingController();
+  final _parentProfessionController = TextEditingController();
   final _phoneController = TextEditingController();
   final _ageController = TextEditingController();
   final _feeController = TextEditingController();
@@ -51,6 +53,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
       final s = widget.student!;
       _nameController.text = s.name;
       _parentNameController.text = s.parentName ?? '';
+      _parentProfessionController.text = s.parentProfession ?? '';
       _phoneController.text = s.phone ?? '';
       _ageController.text = s.age?.toString() ?? '';
       _feeController.text = s.monthlyFee.toString();
@@ -65,6 +68,7 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
   void dispose() {
     _nameController.dispose();
     _parentNameController.dispose();
+    _parentProfessionController.dispose();
     _phoneController.dispose();
     _ageController.dispose();
     _feeController.dispose();
@@ -135,15 +139,19 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
 
     try {
       final repo = ref.read(studentRepositoryProvider);
+      final cleanName = _nameController.text.trim();
+      final cleanPhone = _phoneController.text.trim();
+
       final ageVal = int.tryParse(_ageController.text);
       final feeVal = double.parse(_feeController.text);
 
       if (isEdit) {
         await repo.updateStudent(
           id: widget.student!.id,
-          name: _nameController.text.trim(),
+          name: cleanName,
           parentName: _parentNameController.text.trim().isEmpty ? null : _parentNameController.text.trim(),
-          phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+          parentProfession: _parentProfessionController.text.trim().isEmpty ? null : _parentProfessionController.text.trim(),
+          phone: cleanPhone.isEmpty ? null : cleanPhone,
           age: ageVal,
           sport: _selectedSport,
           batchId: _selectedBatchId,
@@ -155,9 +163,10 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
         );
       } else {
         await repo.createStudent(
-          name: _nameController.text.trim(),
+          name: cleanName,
           parentName: _parentNameController.text.trim().isEmpty ? null : _parentNameController.text.trim(),
-          phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+          parentProfession: _parentProfessionController.text.trim().isEmpty ? null : _parentProfessionController.text.trim(),
+          phone: cleanPhone.isEmpty ? null : cleanPhone,
           age: ageVal,
           sport: _selectedSport,
           batchId: _selectedBatchId,
@@ -167,6 +176,8 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
           photo: _photoFile,
         );
       }
+
+      ref.invalidate(studentListProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -423,6 +434,13 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                       controller: _parentNameController,
                       style: AppTheme.body1,
                       decoration: const InputDecoration(labelText: 'Parent/Guardian Name'),
+                    ),
+                    const SizedBox(height: AppTheme.space16),
+
+                    TextFormField(
+                      controller: _parentProfessionController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: "Parent's Profession"),
                     ),
                     const SizedBox(height: AppTheme.space16),
 

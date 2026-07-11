@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/controllers/auth_controller.dart';
 import '../../core/theme/theme.dart';
 
-class MainNavigationLayout extends ConsumerWidget {
+class MainNavigationLayout extends ConsumerStatefulWidget {
   final Widget child;
 
   const MainNavigationLayout({
@@ -13,12 +13,28 @@ class MainNavigationLayout extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainNavigationLayout> createState() => _MainNavigationLayoutState();
+}
+
+class _MainNavigationLayoutState extends ConsumerState<MainNavigationLayout> {
+  // Track horizontal drag for swipe navigation
+  double _dragStartX = 0.0;
+  double _dragStartY = 0.0;
+  double _dragDeltaX = 0.0;
+  double _dragDeltaY = 0.0;
+  bool _isDragging = false;
+  bool _decided = false; // Once we decide it's vertical scroll, stop tracking
+
+  // Minimum horizontal distance to count as a valid swipe
+  static const double _minSwipeDistance = 100.0;
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final profile = authState.profile;
 
     if (profile == null) {
-      return Scaffold(body: child);
+      return Scaffold(body: widget.child);
     }
 
     final isAdmin = profile.isAdmin;
@@ -88,7 +104,6 @@ class MainNavigationLayout extends ConsumerWidget {
     // Determine current index
     int currentIndex = destinations.indexWhere((d) => d.route == location);
     if (currentIndex == -1) {
-      // Fallbacks for sub-paths if any are inside the shell
       if (location.startsWith('/students')) {
         currentIndex = 1;
       } else if (location.startsWith('/batches') && isAdmin) {
@@ -107,7 +122,54 @@ class MainNavigationLayout extends ConsumerWidget {
     final inactiveColor = isDark ? AppTheme.textMuted : const Color(0xFFE5E7EB);
 
     return Scaffold(
-      body: child,
+      body: Listener(
+        // Listener uses raw PointerEvents — doesn't participate in gesture arena
+        // so it won't conflict with scrolling, tapping, or any other gestures.
+        onPointerDown: (event) {
+          _dragStartX = event.position.dx;
+          _dragStartY = event.position.dy;
+          _dragDeltaX = 0;
+          _dragDeltaY = 0;
+          _isDragging = true;
+          _decided = false;
+        },
+        onPointerMove: (event) {
+          if (!_isDragging || _decided) return;
+          _dragDeltaX = event.position.dx - _dragStartX;
+          _dragDeltaY = event.position.dy - _dragStartY;
+
+          // Once the user has moved enough, decide: is this a horizontal swipe or vertical scroll?
+          final totalDist = _dragDeltaX.abs() + _dragDeltaY.abs();
+          if (totalDist > 20) {
+            if (_dragDeltaY.abs() > _dragDeltaX.abs()) {
+              // Predominantly vertical → this is a scroll, stop tracking
+              _isDragging = false;
+              _decided = true;
+            }
+          }
+        },
+        onPointerUp: (event) {
+          if (!_isDragging) return;
+          _isDragging = false;
+          _decided = true;
+
+          // Only navigate if the swipe was predominantly horizontal and long enough
+          if (_dragDeltaX.abs() > _dragDeltaY.abs() && _dragDeltaX.abs() > _minSwipeDistance) {
+            if (_dragDeltaX > 0) {
+              // Swiped left-to-right → go to LEFT item (previous tab)
+              if (currentIndex > 0) {
+                context.go(destinations[currentIndex - 1].route);
+              }
+            } else {
+              // Swiped right-to-left → go to RIGHT item (next tab)
+              if (currentIndex < destinations.length - 1) {
+                context.go(destinations[currentIndex + 1].route);
+              }
+            }
+          }
+        },
+        child: widget.child,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: bottomNavBg,

@@ -8,6 +8,7 @@ import '../../../shared/models/expense.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/expense_repository.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/utils/export_helper.dart';
 import '../../../shared/widgets/app_widgets.dart';
 
 final expensesListProvider = FutureProvider.autoDispose<List<Expense>>((ref) async {
@@ -56,6 +57,77 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expense Registry'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export Expenses',
+            onSelected: (value) async {
+              final expenses = expensesAsync.value ?? [];
+              final headers = ['Date', 'Category', 'Description', 'Amount'];
+              final rows = expenses.map<List<String>>((e) => [
+                e.date.toLocal().toString().split(' ')[0],
+                _formatCategory(e.category),
+                e.description ?? '',
+                e.amount.toStringAsFixed(2),
+              ]).toList();
+
+              final isPdf = value.endsWith('pdf');
+              final isShare = value.startsWith('share');
+
+              await ExportHelper.exportData(
+                context: context,
+                fileName: 'expenses_report',
+                title: 'Expenses Registry Report',
+                headers: headers,
+                rows: rows,
+                exportAsPdf: isPdf,
+                share: isShare,
+              );
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'download_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'download_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.grid_on_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share Excel'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showLogExpenseDialog,

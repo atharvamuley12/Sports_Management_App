@@ -4,14 +4,34 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router/router.dart';
 import 'core/theme/theme.dart';
+import 'core/providers/shared_prefs_provider.dart';
 
 bool _isAppConfigured = false;
 
+Map<String, dynamic>? _loadConfigFromDisk() {
+  var dir = Directory.current;
+
+  while (true) {
+    final file = File('${dir.path}/config.json');
+    if (file.existsSync()) {
+      return jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+    }
+
+    if (dir.parent.path == dir.path) {
+      return null;
+    }
+
+    dir = dir.parent;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
 
   // Retrieve environment variables compiled via --dart-define
   var supabaseUrl = const String.fromEnvironment('SUPABASE_URL');
@@ -21,21 +41,8 @@ void main() async {
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
     if (!kIsWeb) {
       try {
-        var dir = Directory.current;
-        File? configFile;
-        for (int i = 0; i < 5; i++) {
-          final file = File('${dir.path}/config.json');
-          if (file.existsSync()) {
-            configFile = file;
-            break;
-          }
-          // Navigate up to find root project directory
-          if (dir.path == dir.parent.path) break; // Reached root directory
-          dir = dir.parent;
-        }
-
-        if (configFile != null) {
-          final config = jsonDecode(configFile.readAsStringSync());
+        final config = _loadConfigFromDisk();
+        if (config != null) {
           supabaseUrl = config['SUPABASE_URL'] ?? '';
           supabaseAnonKey = config['SUPABASE_ANON_KEY'] ?? '';
         }
@@ -62,8 +69,11 @@ void main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: SportsAcademyApp(),
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const SportsAcademyApp(),
     ),
   );
 }
@@ -203,7 +213,7 @@ class SetupRequiredScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Option A: Run with the root .env file',
+                      'Option A: Run with the root config.json file',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -257,7 +267,7 @@ class SetupRequiredScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      '• VS Code: Select the "sports_academy_app" launch configuration.\n• Android Studio/IntelliJ: Run the "main.dart" configuration.\n• Or just run "flutter run --dart-define-from-file=.env" from the project root.',
+                      '• VS Code: Select the "sports_academy_app" launch configuration.\n• Android Studio/IntelliJ: Run the "main.dart" configuration.\n• Or just run "flutter run --dart-define-from-file=config.json" from the project root.',
                       style: TextStyle(
                         fontSize: 13,
                         color: AppTheme.textSecondary,

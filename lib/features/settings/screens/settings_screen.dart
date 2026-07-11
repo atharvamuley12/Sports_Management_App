@@ -7,6 +7,7 @@ import '../../../shared/utils/seed_helper.dart';
 import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../core/utils/error_handler.dart';
+import '../services/whatsapp_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -161,6 +162,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.admin_panel_settings_rounded,
               ),
               const SizedBox(height: AppTheme.space12),
+              _buildWhatsAppToggleTile(),
+              const SizedBox(height: AppTheme.space12),
               _buildActionTile(
                 icon: Icons.storage_rounded,
                 title: 'Seed Database with Test Data',
@@ -240,6 +243,60 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Widget _buildWhatsAppToggleTile() {
+    final apiEnabled = ref.watch(whatsappApiEnabledProvider);
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.space8),
+              decoration: BoxDecoration(
+                color: AppTheme.accentPurple.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppTheme.radius10),
+                border: Border.all(
+                  color: AppTheme.accentPurple.withValues(alpha: 0.15),
+                  width: 0.5,
+                ),
+              ),
+              child: const Icon(
+                Icons.chat_rounded,
+                color: AppTheme.accentPurple,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: AppTheme.space16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('WhatsApp API Gateway', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const SizedBox(height: AppTheme.space4),
+                  Text(
+                    apiEnabled 
+                        ? 'Automatic API sending active (Uses API tokens)'
+                        : 'Manual browser/app redirect active (Free)',
+                    style: AppTheme.caption.copyWith(height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: apiEnabled,
+              activeThumbColor: AppTheme.accentLime,
+              onChanged: (val) {
+                ref.read(whatsappApiEnabledProvider.notifier).toggle(val);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileCard(dynamic profile) {
     final isLimes = profile.isAdmin;
     final roleColor = isLimes ? AppTheme.accentLime : AppTheme.accentTeal;
@@ -311,25 +368,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }) {
     return AppCard(
       padding: EdgeInsets.zero,
-      child: ListTile(
-        onTap: onTap,
-        mouseCursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
-        leading: Container(
-          padding: const EdgeInsets.all(AppTheme.space8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(AppTheme.radius10),
-            border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppTheme.radius16),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: onTap,
+          mouseCursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+          contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.space16, vertical: AppTheme.space8),
+          leading: Container(
+            padding: const EdgeInsets.all(AppTheme.space8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppTheme.radius10),
+              border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          child: Icon(icon, color: color, size: 20),
+          title: Text(title, style: AppTheme.subtitle2),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: AppTheme.space4),
+            child: Text(subtitle, style: AppTheme.caption.copyWith(height: 1.4)),
+          ),
+          trailing: trailingWidget ?? const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
         ),
-        title: Text(title, style: AppTheme.subtitle2),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: AppTheme.space4),
-          child: Text(subtitle, style: AppTheme.caption.copyWith(height: 1.4)),
-        ),
-        trailing: trailingWidget ?? const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
       ),
     );
   }

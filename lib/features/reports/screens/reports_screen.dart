@@ -7,6 +7,7 @@ import '../../../core/supabase/supabase_client.dart';
 import '../../../shared/widgets/app_widgets.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/export_helper.dart';
 
 class MonthlyFinancials {
   final String label; // e.g. "Jan", "Feb"
@@ -217,21 +218,126 @@ class ReportsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Reports & Analytics'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.analytics_rounded, size: 20), text: 'Financials'),
-              Tab(icon: Icon(Icons.rule_rounded, size: 20), text: 'Attendance'),
+      child: Builder(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Reports & Analytics'),
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.download_rounded),
+                tooltip: 'Export Reports',
+                onSelected: (value) async {
+                  final tabIndex = DefaultTabController.of(context).index;
+                  final isAttendance = tabIndex == 1;
+
+                  List<String> headers;
+                  List<List<String>> rows;
+                  String title;
+                  String fileName;
+
+                  if (isAttendance) {
+                    final attendanceAsync = ref.read(attendanceReportsDataProvider);
+                    final data = attendanceAsync.value;
+                    if (data == null) return;
+
+                    title = 'Attendance Report';
+                    fileName = 'attendance_report';
+                    headers = ['Batch Name', 'Attendance Rate (%)', 'Present Count', 'Total Scanned'];
+                    rows = data.batchStats.map<List<String>>((stats) => [
+                      stats.batchName,
+                      (stats.attendanceRate * 100).toStringAsFixed(1),
+                      stats.presentCount.toString(),
+                      stats.totalCount.toString(),
+                    ]).toList();
+                  } else {
+                    final financialsAsync = ref.read(reportsDataProvider);
+                    final data = financialsAsync.value;
+                    if (data == null) return;
+
+                    title = 'Financials Report';
+                    fileName = 'financials_report';
+                    headers = ['Month', 'Income', 'Expenses', 'Net Profit'];
+                    rows = data.last6Months.map<List<String>>((fin) {
+                      final net = fin.income - fin.expense;
+                      return [
+                        fin.label,
+                        fin.income.toStringAsFixed(2),
+                        fin.expense.toStringAsFixed(2),
+                        net.toStringAsFixed(2),
+                      ];
+                    }).toList();
+                  }
+
+                  final isPdf = value.endsWith('pdf');
+                  final isShare = value.startsWith('share');
+
+                  await ExportHelper.exportData(
+                    context: context,
+                    fileName: fileName,
+                    title: title,
+                    headers: headers,
+                    rows: rows,
+                    exportAsPdf: isPdf,
+                    share: isShare,
+                  );
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'download_pdf',
+                    child: Row(
+                      children: [
+                        Icon(Icons.picture_as_pdf_rounded, color: AppTheme.errorRed, size: 18),
+                        SizedBox(width: 8),
+                        Text('Download PDF'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'share_pdf',
+                    child: Row(
+                      children: [
+                        Icon(Icons.share_rounded, color: AppTheme.errorRed, size: 18),
+                        SizedBox(width: 8),
+                        Text('Share PDF'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'download_excel',
+                    child: Row(
+                      children: [
+                        Icon(Icons.grid_on_rounded, color: AppTheme.successGreen, size: 18),
+                        SizedBox(width: 8),
+                        Text('Download Excel'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'share_excel',
+                    child: Row(
+                      children: [
+                        Icon(Icons.share_rounded, color: AppTheme.successGreen, size: 18),
+                        SizedBox(width: 8),
+                        Text('Share Excel'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            bottom: const TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.analytics_rounded, size: 20), text: 'Financials'),
+                Tab(icon: Icon(Icons.rule_rounded, size: 20), text: 'Attendance'),
+              ],
+            ),
+          ),
+          body: const TabBarView(
+            children: [
+              _FinancialReportsView(),
+              _AttendanceReportsView(),
             ],
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            _FinancialReportsView(),
-            _AttendanceReportsView(),
-          ],
         ),
       ),
     );

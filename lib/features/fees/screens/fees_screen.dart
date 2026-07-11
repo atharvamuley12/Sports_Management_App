@@ -7,6 +7,8 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/payment_repository.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/utils/export_helper.dart';
+import '../../settings/services/whatsapp_service.dart';
 
 final studentDuesProvider = FutureProvider.autoDispose<List<StudentDues>>((ref) async {
   final paymentRepo = ref.watch(paymentRepositoryProvider);
@@ -24,6 +26,45 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
   String _searchQuery = '';
   bool _isSaving = false;
 
+  Future<void> _sendWhatsAppReminder(StudentDues dues) async {
+    if (dues.phone == null || dues.phone!.isEmpty) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final ws = ref.read(whatsappServiceProvider);
+      await ws.sendFeeReminder(
+        phone: dues.phone!,
+        studentName: dues.name,
+        pendingDues: dues.pendingDues,
+      );
+
+      if (mounted) {
+        final isApi = ref.read(whatsappApiEnabledProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isApi
+                ? 'WhatsApp reminder API request sent successfully!'
+                : 'Redirecting to WhatsApp...'),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showError(context, 'Failed to send reminder', e);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final duesAsync = ref.watch(studentDuesProvider);
@@ -32,6 +73,79 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Fee Ledger & Dues'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export Fee Ledger',
+            onSelected: (value) async {
+              final duesList = duesAsync.value ?? [];
+              final filtered = duesList.where((d) => d.name.toLowerCase().contains(_searchQuery)).toList();
+              final headers = ['Student Name', 'Sport', 'Batch Name', 'Pending Dues', 'Total Paid'];
+              final rows = filtered.map<List<String>>((d) => [
+                d.name,
+                d.sport ?? '',
+                d.batchName ?? 'Unassigned',
+                d.pendingDues.toStringAsFixed(2),
+                d.totalPaid.toStringAsFixed(2),
+              ]).toList();
+
+              final isPdf = value.endsWith('pdf');
+              final isShare = value.startsWith('share');
+
+              await ExportHelper.exportData(
+                context: context,
+                fileName: 'fee_ledger_report',
+                title: 'Fee Ledger Report',
+                headers: headers,
+                rows: rows,
+                exportAsPdf: isPdf,
+                share: isShare,
+              );
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'download_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'download_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.grid_on_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share Excel'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -135,9 +249,47 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    'Monthly Fee: ${currencyFormat.format(dues.monthlyFee)}',
-                                    style: AppTheme.caption,
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Contact: ${dues.phone ?? 'N/A'}',
+                                        style: AppTheme.caption,
+                                      ),
+                                      if (dues.phone != null && dues.phone!.isNotEmpty && dues.pendingDues > 0) ...[
+                                        const SizedBox(width: AppTheme.space6),
+                                        InkWell(
+                                          onTap: _isSaving ? null : () => _sendWhatsAppReminder(dues),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.accentPurple.withValues(alpha: 0.08),
+                                              border: Border.all(color: AppTheme.accentPurple.withValues(alpha: 0.15), width: 0.5),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.chat_rounded,
+                                                  color: AppTheme.accentPurple,
+                                                  size: 11,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Remind',
+                                                  style: AppTheme.overline.copyWith(
+                                                    color: AppTheme.accentPurple,
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   Text(
                                     'Total Paid: ${currencyFormat.format(dues.totalPaid)}',
@@ -369,11 +521,11 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                             ),
                           ),
                           const SizedBox(height: AppTheme.space12),
-                          // Month and Year Row
                           Row(
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<int>(
+                                  isExpanded: true,
                                   initialValue: selectedMonth,
                                   style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                                   decoration: const InputDecoration(labelText: 'Month'),
@@ -391,6 +543,7 @@ class _FeesScreenState extends ConsumerState<FeesScreen> {
                               const SizedBox(width: AppTheme.space12),
                               Expanded(
                                 child: DropdownButtonFormField<int>(
+                                  isExpanded: true,
                                   initialValue: selectedYear,
                                   style: AppTheme.body1.copyWith(color: Theme.of(context).textTheme.bodyLarge?.color),
                                   decoration: const InputDecoration(labelText: 'Year'),

@@ -13,6 +13,7 @@ import '../../auth/controllers/auth_controller.dart';
 import '../repositories/student_repository.dart';
 import '../repositories/batch_repository.dart';
 import '../../fees/repositories/payment_repository.dart';
+import 'student_list_screen.dart';
 
 final studentBatchProvider = FutureProvider.family.autoDispose<Batch?, String?>((ref, batchId) async {
   if (batchId == null) return null;
@@ -48,6 +49,13 @@ class StudentProfileScreen extends ConsumerWidget {
     final profile = authState.profile!;
     final isRestrictedCoach = profile.isCoach && !profile.isActive;
     
+    // Dynamically watch student list and find this student by ID to react immediately to edits
+    final studentListAsync = ref.watch(studentListProvider);
+    final student = studentListAsync.value?.firstWhere(
+          (s) => s.id == this.student.id,
+          orElse: () => this.student,
+        ) ?? this.student;
+    
     final batchAsync = ref.watch(studentBatchProvider(student.batchId));
     final paymentsAsync = ref.watch(studentPaymentsHistoryProvider(student.id));
     final attendanceAsync = ref.watch(studentAttendanceLogsProvider(student.id));
@@ -71,6 +79,10 @@ class StudentProfileScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Student Profile'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.pop(),
+        ),
         actions: [
           if (profile.isAdmin || profile.isCoach)
             Padding(
@@ -89,7 +101,8 @@ class StudentProfileScreen extends ConsumerWidget {
                     ? null
                     : () async {
                         await context.push('/students/edit', extra: student);
-                        // Invalidate data
+                        // Invalidate list to trigger dynamic profile rebuild
+                        ref.invalidate(studentListProvider);
                         ref.invalidate(studentBatchProvider(student.batchId));
                         ref.invalidate(studentPaymentsHistoryProvider(student.id));
                         ref.invalidate(studentAttendanceLogsProvider(student.id));
@@ -319,6 +332,15 @@ class StudentProfileScreen extends ConsumerWidget {
                 ),
             ],
           ),
+          if (student.parentProfession != null && student.parentProfession!.isNotEmpty) ...[
+            const SizedBox(height: AppTheme.space12),
+            Text("Parent's Profession", style: AppTheme.caption),
+            const SizedBox(height: AppTheme.space2),
+            SelectableText(
+              student.parentProfession!,
+              style: AppTheme.subtitle1,
+            ),
+          ],
           if (student.phone != null && student.phone!.isNotEmpty) ...[
             const SizedBox(height: AppTheme.space12),
             Text('Contact Phone', style: AppTheme.caption),
@@ -425,29 +447,25 @@ class StudentProfileScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const AppSectionHeader(
-                title: 'ATTENDANCE LOGS',
-                icon: Icons.playlist_add_check_rounded,
-              ),
-              if (totalCount > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space4),
-                  decoration: BoxDecoration(
-                    color: rateColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppTheme.radius8),
-                  ),
-                  child: Text(
-                    'Rate: ${(rate * 100).toStringAsFixed(1)}%',
-                    style: AppTheme.labelSmall.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: rateColor,
+          AppSectionHeader(
+            title: 'ATTENDANCE LOGS',
+            icon: Icons.playlist_add_check_rounded,
+            trailing: totalCount > 0
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.space8, vertical: AppTheme.space4),
+                    decoration: BoxDecoration(
+                      color: rateColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppTheme.radius8),
                     ),
-                  ),
-                ),
-            ],
+                    child: Text(
+                      'Rate: ${(rate * 100).toStringAsFixed(1)}%',
+                      style: AppTheme.labelSmall.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: rateColor,
+                      ),
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(height: AppTheme.space12),
           if (totalCount > 0) ...[
@@ -469,36 +487,35 @@ class StudentProfileScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: AppTheme.space16),
-            SizedBox(
-              height: 140,
-              child: ListView.separated(
-                itemCount: logs.length > 5 ? 5 : logs.length, // Show recent 5 logs
-                separatorBuilder: (context, index) => const Divider(height: AppTheme.space8),
-                itemBuilder: (context, index) {
-                  final log = logs[index];
-                  final isPresent = log.status == 'present';
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: logs.length > 5 ? 5 : logs.length, // Show recent 5 logs
+              separatorBuilder: (context, index) => const Divider(height: AppTheme.space8),
+              itemBuilder: (context, index) {
+                final log = logs[index];
+                final isPresent = log.status == 'present';
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.event_rounded, size: 14, color: AppTheme.textMuted),
-                            const SizedBox(width: AppTheme.space6),
-                            Text(
-                              DateFormat('dd MMMM yyyy').format(log.date), 
-                              style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
-                            ),
-                          ],
-                        ),
-                        isPresent ? AppStatusChip.present() : AppStatusChip.absent(),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.event_rounded, size: 14, color: AppTheme.textMuted),
+                          const SizedBox(width: AppTheme.space6),
+                          Text(
+                            DateFormat('dd MMMM yyyy').format(log.date), 
+                            style: AppTheme.body2.copyWith(color: AppTheme.textPrimary),
+                          ),
+                        ],
+                      ),
+                      isPresent ? AppStatusChip.present() : AppStatusChip.absent(),
+                    ],
+                  ),
+                );
+              },
             ),
           ] else
             const Center(
@@ -524,48 +541,47 @@ class StudentProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppTheme.space12),
           if (payments.isNotEmpty)
-            SizedBox(
-              height: 160,
-              child: ListView.separated(
-                itemCount: payments.length,
-                separatorBuilder: (context, index) => const Divider(height: AppTheme.space8),
-                itemBuilder: (context, index) {
-                  final p = payments[index];
-                  final monthName = DateFormat('MMMM').format(DateTime(2020, p.month));
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: payments.length,
+              separatorBuilder: (context, index) => const Divider(height: AppTheme.space8),
+              itemBuilder: (context, index) {
+                final p = payments[index];
+                final monthName = DateFormat('MMMM').format(DateTime(2020, p.month));
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${currencyFormat.format(p.amount)} - ${p.mode.toUpperCase()}',
-                              style: AppTheme.subtitle2,
-                            ),
-                            Text(
-                              'For $monthName ${p.year}', 
-                              style: AppTheme.caption,
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textMuted),
-                            const SizedBox(width: AppTheme.space4),
-                            Text(
-                              DateFormat('dd MMM yyyy').format(p.paymentDate), 
-                              style: AppTheme.caption,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${currencyFormat.format(p.amount)} - ${p.mode.toUpperCase()}',
+                            style: AppTheme.subtitle2,
+                          ),
+                          Text(
+                            'For $monthName ${p.year}', 
+                            style: AppTheme.caption,
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, size: 12, color: AppTheme.textMuted),
+                          const SizedBox(width: AppTheme.space4),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(p.paymentDate), 
+                            style: AppTheme.caption,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
             )
           else
             const Center(

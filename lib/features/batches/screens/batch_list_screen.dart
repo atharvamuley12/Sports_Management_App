@@ -7,6 +7,7 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/repositories/profile_repository.dart';
 import '../../students/repositories/batch_repository.dart';
 import '../../students/repositories/student_repository.dart';
+import '../../../core/utils/export_helper.dart';
 
 final batchesListProvider = FutureProvider.autoDispose<List<Batch>>((ref) async {
   final repo = ref.watch(batchRepositoryProvider);
@@ -44,6 +45,83 @@ class BatchListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Batches'),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export Batches',
+            onSelected: (value) async {
+              final batches = batchesAsync.value ?? [];
+              final coaches = coachesAsync.value ?? {};
+              final counts = countsAsync.value ?? {};
+              final headers = ['Batch Name', 'Sport', 'Days', 'Capacity', 'Coach Name', 'Student Count'];
+              final rows = batches.map((b) {
+                final coachName = b.coachId != null ? (coaches[b.coachId] ?? 'Unknown Coach') : 'Unassigned';
+                final studentCount = counts[b.id] ?? 0;
+                return [
+                  b.name,
+                  b.sport,
+                  b.days.join(', '),
+                  b.capacity.toString(),
+                  coachName,
+                  studentCount.toString(),
+                ];
+              }).toList();
+
+              final isPdf = value.endsWith('pdf');
+              final isShare = value.startsWith('share');
+
+              await ExportHelper.exportData(
+                context: context,
+                fileName: 'batches_report',
+                title: 'Batches List',
+                headers: headers,
+                rows: rows,
+                exportAsPdf: isPdf,
+                share: isShare,
+              );
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'download_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'download_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.grid_on_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share Excel'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.only(right: AppTheme.space12),
             child: Container(

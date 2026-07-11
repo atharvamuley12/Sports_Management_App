@@ -34,6 +34,8 @@ class StudentRepository {
     return (response as List).map((json) => Student.fromJson(json)).toList();
   }
 
+
+
   /// Uploads photo to the private student_photos bucket.
   Future<String?> uploadStudentPhoto(XFile photo) async {
     final bytes = await photo.readAsBytes();
@@ -49,10 +51,64 @@ class StudentRepository {
     return path;
   }
 
+  String _normalizePhone(String? phone) {
+    if (phone == null || phone.trim().isEmpty) return '';
+    String digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('91') && digits.length == 12) {
+      digits = digits.substring(2);
+    }
+    if (digits.startsWith('0') && digits.length == 11) {
+      digits = digits.substring(1);
+    }
+    return digits;
+  }
+
+  String _normalizeName(String name) {
+    return name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  /// Checks if a student with the same name and phone already exists (for duplication check).
+  Future<bool> doesStudentExist(String name, String phone, {String? excludeId}) async {
+    final response = await _supabase
+        .from('students')
+        .select('id, name, phone')
+        .timeout(const Duration(seconds: 20));
+
+    final list = response as List;
+    final normalizedName = _normalizeName(name);
+    final normalizedNewPhone = _normalizePhone(phone);
+
+    for (final item in list) {
+      final existingId = item['id'] as String;
+      if (existingId == excludeId) continue;
+
+      final existingName = _normalizeName(item['name'] as String);
+      final existingPhone = item['phone'] as String?;
+      final normalizedExistingPhone = _normalizePhone(existingPhone);
+
+      if (normalizedName == existingName && normalizedNewPhone == normalizedExistingPhone) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> _ensureStudentIsUnique({
+    required String name,
+    required String? phone,
+    String? excludeId,
+  }) async {
+    final alreadyExists = await doesStudentExist(name, phone ?? '', excludeId: excludeId);
+    if (alreadyExists) {
+      throw StateError('A student with this name and phone number already exists.');
+    }
+  }
+
   /// Creates a student record. Admin only.
   Future<void> createStudent({
     required String name,
     String? parentName,
+    String? parentProfession,
     String? phone,
     int? age,
     required String sport,
@@ -62,6 +118,8 @@ class StudentRepository {
     required String status,
     XFile? photo,
   }) async {
+    await _ensureStudentIsUnique(name: name, phone: phone);
+
     String? photoPath;
     if (photo != null) {
       photoPath = await uploadStudentPhoto(photo);
@@ -70,6 +128,7 @@ class StudentRepository {
     await _supabase.from('students').insert({
       'name': name,
       'parent_name': parentName,
+      'parent_profession': parentProfession,
       'phone': phone,
       'age': age,
       'sport': sport,
@@ -86,6 +145,7 @@ class StudentRepository {
     required String id,
     required String name,
     String? parentName,
+    String? parentProfession,
     String? phone,
     int? age,
     required String sport,
@@ -96,6 +156,8 @@ class StudentRepository {
     XFile? newPhoto,
     String? existingPhotoUrl,
   }) async {
+    await _ensureStudentIsUnique(name: name, phone: phone, excludeId: id);
+
     String? photoPath = existingPhotoUrl;
     if (newPhoto != null) {
       photoPath = await uploadStudentPhoto(newPhoto);
@@ -109,6 +171,7 @@ class StudentRepository {
     await _supabase.from('students').update({
       'name': name,
       'parent_name': parentName,
+      'parent_profession': parentProfession,
       'phone': phone,
       'age': age,
       'sport': sport,

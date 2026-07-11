@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/theme.dart';
 import '../../../shared/models/profile.dart';
 import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/repositories/profile_repository.dart';
 import '../../../core/utils/error_handler.dart';
+import '../../../core/supabase/supabase_client.dart';
 
 final coachesListProvider = FutureProvider.autoDispose<List<Profile>>((ref) async {
   final profileRepo = ref.watch(profileRepositoryProvider);
@@ -75,16 +78,7 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(AppTheme.radius12),
-                            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15)),
-                          ),
-                          child: Icon(Icons.sports_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
-                        ),
+                        _buildCoachPhoto(ref, coach.photoUrl, context),
                         const SizedBox(width: AppTheme.space14),
                         Expanded(
                           child: Column(
@@ -94,8 +88,30 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                                 coach.fullName,
                                 style: AppTheme.subtitle1,
                               ),
-                              if (coach.phone != null && coach.phone!.isNotEmpty) ...[
+                              const SizedBox(height: AppTheme.space4),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: [
+                                  if (coach.speciality != null && coach.speciality!.isNotEmpty)
+                                    _infoPill(coach.speciality!, Theme.of(context).colorScheme.primary),
+                                  if (coach.experience != null && coach.experience!.isNotEmpty)
+                                    _infoPill('${coach.experience} Exp', AppTheme.textMuted),
+                                ],
+                              ),
+                              if (coach.degree != null && coach.degree!.isNotEmpty) ...[
+                                const SizedBox(height: AppTheme.space4),
+                                Text(coach.degree!, style: AppTheme.caption.copyWith(fontSize: 11)),
+                              ],
+                              if (coach.achievements != null && coach.achievements!.isNotEmpty) ...[
                                 const SizedBox(height: AppTheme.space2),
+                                Text(
+                                  'Achievements: ${coach.achievements}',
+                                  style: AppTheme.caption.copyWith(fontSize: 10, fontStyle: FontStyle.italic),
+                                ),
+                              ],
+                              if (coach.phone != null && coach.phone!.isNotEmpty) ...[
+                                const SizedBox(height: AppTheme.space4),
                                 Text(
                                   coach.phone!,
                                   style: AppTheme.caption,
@@ -214,12 +230,27 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
     final nameController = TextEditingController(text: coach.fullName);
     final phoneController = TextEditingController(text: coach.phone ?? '');
     final emailController = TextEditingController(text: coach.email ?? '');
+    final degreeController = TextEditingController(text: coach.degree ?? '');
+    final expController = TextEditingController(text: coach.experience ?? '');
+    final specController = TextEditingController(text: coach.speciality ?? '');
+    final achController = TextEditingController(text: coach.achievements ?? '');
+    XFile? newPhotoFile;
+    final picker = ImagePicker();
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setState) {
+          Future<void> pickImage(ImageSource source) async {
+            final file = await picker.pickImage(source: source, imageQuality: 70);
+            if (file != null) {
+              setState(() {
+                newPhotoFile = file;
+              });
+            }
+          }
+
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) {
               return;
@@ -231,11 +262,27 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
 
             try {
               final repo = ref.read(profileRepositoryProvider);
+              String? photoUrl = coach.photoUrl;
+
+              if (newPhotoFile != null) {
+                photoUrl = await repo.uploadCoachPhoto(newPhotoFile!);
+                if (coach.photoUrl != null && coach.photoUrl!.isNotEmpty) {
+                  try {
+                    await ref.read(supabaseClientProvider).storage.from('coach_photos').remove([coach.photoUrl!]);
+                  } catch (_) {}
+                }
+              }
+
               await repo.updateCoachProfile(
                 coachId: coach.id,
                 name: nameController.text.trim(),
                 phone: phoneController.text.trim().isEmpty ? '' : phoneController.text.trim(),
                 email: emailController.text.trim(),
+                degree: degreeController.text.trim().isEmpty ? null : degreeController.text.trim(),
+                experience: expController.text.trim().isEmpty ? null : expController.text.trim(),
+                speciality: specController.text.trim().isEmpty ? null : specController.text.trim(),
+                achievements: achController.text.trim().isEmpty ? null : achController.text.trim(),
+                photoUrl: photoUrl,
               );
 
               ref.invalidate(coachesListProvider);
@@ -299,6 +346,69 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Photo selector
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (ctx) => SafeArea(
+                              child: Wrap(
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.camera_alt_rounded),
+                                    title: const Text('Take Photo'),
+                                    onTap: () {
+                                      Navigator.of(ctx).pop();
+                                      pickImage(ImageSource.camera);
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.photo_library_rounded),
+                                    title: const Text('Choose from Gallery'),
+                                    onTap: () {
+                                      Navigator.of(ctx).pop();
+                                      pickImage(ImageSource.gallery);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          height: 80,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3), width: 2),
+                          ),
+                          child: newPhotoFile != null
+                              ? ClipOval(
+                                  child: Image.file(
+                                    File(newPhotoFile!.path),
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : coach.photoUrl != null
+                                  ? ClipOval(
+                                      child: Consumer(
+                                        builder: (context, ref, child) {
+                                          final bytesAsync = ref.watch(coachPhotoBytesProvider(coach.photoUrl!));
+                                          return bytesAsync.when(
+                                            data: (bytes) => Image.memory(bytes, fit: BoxFit.cover),
+                                            loading: () => const Center(child: SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+                                            error: (e, s) => const Icon(Icons.person_rounded),
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : const Icon(Icons.add_a_photo_outlined, size: 24),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.space16),
                     TextFormField(
                       controller: nameController,
                       style: AppTheme.body1,
@@ -342,6 +452,31 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                         }
                         return null;
                       },
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: degreeController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Degree / Qualification'),
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: expController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Coaching Experience'),
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: specController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Speciality'),
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: achController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Special Achievements'),
+                      maxLines: 2,
                     ),
                   ],
                 ),
@@ -501,12 +636,27 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
     final emailController = TextEditingController();
     final phoneController = TextEditingController();
     final passwordController = TextEditingController();
+    final degreeController = TextEditingController();
+    final expController = TextEditingController();
+    final specController = TextEditingController();
+    final achController = TextEditingController();
+    XFile? photoFile;
+    final picker = ImagePicker();
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setState) {
+          Future<void> pickImage(ImageSource source) async {
+            final file = await picker.pickImage(source: source, imageQuality: 70);
+            if (file != null) {
+              setState(() {
+                photoFile = file;
+              });
+            }
+          }
+
           Future<void> submit() async {
             if (!formKey.currentState!.validate()) {
               return;
@@ -518,12 +668,21 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
 
             try {
               final repo = ref.read(profileRepositoryProvider);
+              String? photoUrl;
+              if (photoFile != null) {
+                photoUrl = await repo.uploadCoachPhoto(photoFile!);
+              }
 
               await repo.createCoachUser(
                 name: nameController.text.trim(),
                 phone: phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
                 email: emailController.text.trim(),
                 password: passwordController.text,
+                degree: degreeController.text.trim().isEmpty ? null : degreeController.text.trim(),
+                experience: expController.text.trim().isEmpty ? null : expController.text.trim(),
+                speciality: specController.text.trim().isEmpty ? null : specController.text.trim(),
+                achievements: achController.text.trim().isEmpty ? null : achController.text.trim(),
+                photoUrl: photoUrl,
               );
 
               ref.invalidate(coachesListProvider);
@@ -587,6 +746,53 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Photo selector
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (bctx) => SafeArea(
+                              child: Wrap(
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.camera_alt_rounded),
+                                    title: const Text('Capture Camera'),
+                                    onTap: () {
+                                      Navigator.of(bctx).pop();
+                                      pickImage(ImageSource.camera);
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.photo_library_rounded),
+                                    title: const Text('Choose Library'),
+                                    onTap: () {
+                                      Navigator.of(bctx).pop();
+                                      pickImage(ImageSource.gallery);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          height: 80,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color ?? Theme.of(context).colorScheme.surface,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3), width: 2),
+                          ),
+                          child: photoFile != null
+                              ? ClipOval(
+                                  child: Image.file(File(photoFile!.path), fit: BoxFit.cover),
+                                )
+                              : const Icon(Icons.add_a_photo_outlined, size: 24),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.space16),
                     TextFormField(
                       controller: nameController,
                       style: AppTheme.body1,
@@ -634,6 +840,31 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
                     ),
                     const SizedBox(height: AppTheme.space12),
                     TextFormField(
+                      controller: degreeController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Degree / Qualification'),
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: expController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Coaching Experience'),
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: specController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Speciality'),
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
+                      controller: achController,
+                      style: AppTheme.body1,
+                      decoration: const InputDecoration(labelText: 'Special Achievements'),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: AppTheme.space12),
+                    TextFormField(
                       controller: passwordController,
                       obscureText: true,
                       style: AppTheme.body1,
@@ -671,6 +902,77 @@ class _CoachesScreenState extends ConsumerState<CoachesScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCoachPhoto(WidgetRef ref, String? path, BuildContext context) {
+    final fallbackColor = Theme.of(context).colorScheme.primary;
+    if (path == null || path.isEmpty) {
+      return Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: fallbackColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
+          border: Border.all(color: fallbackColor.withValues(alpha: 0.15)),
+        ),
+        child: Icon(Icons.sports_rounded, color: fallbackColor, size: 24),
+      );
+    }
+
+    final bytesAsync = ref.watch(coachPhotoBytesProvider(path));
+    return bytesAsync.when(
+      data: (bytes) => Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
+          image: DecorationImage(image: MemoryImage(bytes), fit: BoxFit.cover),
+          border: Border.all(color: AppTheme.darkBorder),
+        ),
+      ),
+      loading: () => Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: AppTheme.darkSurface,
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
+        ),
+        child: const Center(
+          child: SizedBox(
+            height: 14, width: 14,
+            child: CircularProgressIndicator(strokeWidth: 1.5, color: AppTheme.accentLime),
+          ),
+        ),
+      ),
+      error: (err, stack) => Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: AppTheme.errorRed.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppTheme.radius12),
+        ),
+        child: const Icon(Icons.error_outline, color: AppTheme.errorRed, size: 18),
+      ),
+    );
+  }
+
+  Widget _infoPill(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
+      ),
+      child: Text(
+        text,
+        style: AppTheme.overline.copyWith(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../../../shared/widgets/app_widgets.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../repositories/student_repository.dart';
 import '../repositories/batch_repository.dart';
+import '../../../core/utils/export_helper.dart';
 
 final studentListProvider = FutureProvider.autoDispose<List<Student>>((ref) async {
   final studentRepo = ref.watch(studentRepositoryProvider);
@@ -44,6 +45,79 @@ class _StudentListScreenState extends ConsumerState<StudentListScreen> {
       appBar: AppBar(
         title: const Text('Students'),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export Students',
+            onSelected: (value) async {
+              final students = studentListAsync.value ?? [];
+              final headers = ['Name', 'Parent Name', 'Parent Profession', 'Phone', 'Age', 'Sport', 'Status', 'Monthly Fee'];
+              final rows = students.map((s) => [
+                s.name,
+                s.parentName ?? '',
+                s.parentProfession ?? '',
+                s.phone ?? '',
+                s.age?.toString() ?? '',
+                s.sport,
+                s.status,
+                s.monthlyFee.toStringAsFixed(2),
+              ]).toList();
+
+              final isPdf = value.endsWith('pdf');
+              final isShare = value.startsWith('share');
+
+              await ExportHelper.exportData(
+                context: context,
+                fileName: 'students_report',
+                title: 'Students List',
+                headers: headers,
+                rows: rows,
+                exportAsPdf: isPdf,
+                share: isShare,
+              );
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'download_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'download_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.grid_on_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share Excel'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           if ((profile.isAdmin || profile.isCoach) && !isRestrictedCoach)
             Padding(
               padding: const EdgeInsets.only(right: AppTheme.space12),

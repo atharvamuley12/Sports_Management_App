@@ -14,6 +14,7 @@ import '../../students/repositories/student_repository.dart';
 import '../repositories/attendance_repository.dart';
 import '../../../core/utils/error_handler.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/export_helper.dart';
 
 final attendanceBatchesProvider = FutureProvider.autoDispose<List<Batch>>((ref) async {
   final batchRepo = ref.watch(batchRepositoryProvider);
@@ -334,6 +335,100 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> with Single
     return Scaffold(
       appBar: AppBar(
         title: const Text('Attendance'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Export Attendance',
+            onSelected: (value) async {
+              final isHistoryTab = _tabController.index == 1;
+              List<String> headers;
+              List<List<String>> rows;
+              String title;
+              String fileName;
+
+              if (isHistoryTab) {
+                title = 'Attendance History';
+                fileName = 'attendance_history';
+                headers = ['Date', 'Student Name', 'Status'];
+                rows = _historyLogs.map<List<String>>((log) {
+                  final studentMap = log['students'] as Map<String, dynamic>?;
+                  final studentName = studentMap?['name'] ?? 'Unknown';
+                  return [
+                    log['date']?.toString() ?? '',
+                    studentName,
+                    (log['status']?.toString() ?? 'absent').toUpperCase(),
+                  ];
+                }).toList();
+              } else {
+                title = 'Attendance Log Today';
+                fileName = 'attendance_today';
+                headers = ['Student Name', 'Attendance Status'];
+                rows = _students.map<List<String>>((student) {
+                  final status = _attendanceMap[student.id] ?? 'present';
+                  return [
+                    student.name,
+                    status.toUpperCase(),
+                  ];
+                }).toList();
+              }
+
+              final isPdf = value.endsWith('pdf');
+              final isShare = value.startsWith('share');
+
+              await ExportHelper.exportData(
+                context: context,
+                fileName: fileName,
+                title: title,
+                headers: headers,
+                rows: rows,
+                exportAsPdf: isPdf,
+                share: isShare,
+              );
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'download_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.errorRed, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'download_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.grid_on_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Download Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share_excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.share_rounded, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text('Share Excel'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

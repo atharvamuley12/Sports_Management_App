@@ -34,6 +34,8 @@ class AuthRefreshListenable extends ChangeNotifier {
   }
 }
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final authRefreshListenableProvider = Provider<AuthRefreshListenable>((ref) {
   return AuthRefreshListenable(ref);
 });
@@ -103,15 +105,18 @@ final routerProvider = Provider<GoRouter>((ref) {
   final refreshListenable = ref.watch(authRefreshListenableProvider);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/auth',
     refreshListenable: refreshListenable,
     routes: [
       GoRoute(
         path: '/auth',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _scaleTransition(const AuthScreen(), state),
       ),
       GoRoute(
         path: '/change-password',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _slideTransition(const ChangePasswordScreen(), state),
       ),
       ShellRoute(
@@ -148,10 +153,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Subpages outside Shell (they slide over the bottom nav bar)
       GoRoute(
         path: '/students/new',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _slideTransition(const StudentFormScreen(), state),
       ),
       GoRoute(
         path: '/students/edit',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final student = state.extra as Student?;
           return _slideTransition(StudentFormScreen(student: student), state);
@@ -159,6 +166,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/students/profile',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final student = state.extra as Student;
           return _slideTransition(StudentProfileScreen(student: student), state);
@@ -166,10 +174,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/batches/new',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _slideTransition(const BatchFormScreen(), state),
       ),
       GoRoute(
         path: '/batches/edit',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) {
           final batch = state.extra as Batch?;
           return _slideTransition(BatchFormScreen(batch: batch), state);
@@ -177,18 +187,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/fees',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _slideTransition(const FeesScreen(), state),
       ),
       GoRoute(
         path: '/expenses',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _slideTransition(const ExpensesScreen(), state),
       ),
       GoRoute(
         path: '/reports',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _slideTransition(const ReportsScreen(), state),
       ),
       GoRoute(
         path: '/users',
+        parentNavigatorKey: rootNavigatorKey,
         pageBuilder: (context, state) => _slideTransition(const CoachesScreen(), state),
       ),
     ],

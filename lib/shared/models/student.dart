@@ -4,6 +4,7 @@ class Student {
   final String id;
   final String name;
   final String? parentName;
+  final String? parentProfession;
   final String? phone;
   final int? age;
   final String sport; // 'cricket' | 'football'
@@ -18,6 +19,7 @@ class Student {
     required this.id,
     required this.name,
     this.parentName,
+    this.parentProfession,
     this.phone,
     this.age,
     required this.sport,
@@ -34,6 +36,7 @@ class Student {
       id: json['id'] as String,
       name: json['name'] as String,
       parentName: json['parent_name'] as String?,
+      parentProfession: json['parent_profession'] as String?,
       phone: json['phone'] as String?,
       age: json['age'] as int?,
       sport: json['sport'] as String,
@@ -51,6 +54,7 @@ class Student {
       'id': id,
       'name': name,
       'parent_name': parentName,
+      'parent_profession': parentProfession,
       'phone': phone,
       'age': age,
       'sport': sport,
@@ -69,6 +73,7 @@ class Student {
     String? id,
     String? name,
     String? parentName,
+    String? parentProfession,
     String? phone,
     int? age,
     String? sport,
@@ -83,6 +88,7 @@ class Student {
       id: id ?? this.id,
       name: name ?? this.name,
       parentName: parentName ?? this.parentName,
+      parentProfession: parentProfession ?? this.parentProfession,
       phone: phone ?? this.phone,
       age: age ?? this.age,
       sport: sport ?? this.sport,

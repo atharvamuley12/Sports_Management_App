@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase/supabase_client.dart';
 import '../../../shared/models/profile.dart';
@@ -6,6 +8,15 @@ import '../../../shared/models/profile.dart';
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   final supabase = ref.watch(supabaseClientProvider);
   return ProfileRepository(supabase);
+});
+
+/// Caches and returns image bytes for coach photos from the private storage bucket.
+final coachPhotoBytesProvider = FutureProvider.family.autoDispose<Uint8List, String>((ref, path) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  return await supabase.storage
+      .from('coach_photos')
+      .download(path)
+      .timeout(const Duration(seconds: 20));
 });
 
 class ProfileRepository {
@@ -41,12 +52,32 @@ class ProfileRepository {
     }
   }
 
+  /// Uploads photo to the private coach_photos bucket.
+  Future<String?> uploadCoachPhoto(XFile photo) async {
+    final bytes = await photo.readAsBytes();
+    final fileExt = photo.name.split('.').last;
+    final fileName = '${DateTime.now().microsecondsSinceEpoch}.$fileExt';
+    final path = 'coaches/$fileName';
+
+    await _supabase.storage.from('coach_photos').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: photo.mimeType, upsert: true),
+        ).timeout(const Duration(seconds: 30));
+    return path;
+  }
+
   /// Invokes the RPC function to create a coach account.
   Future<void> createCoachUser({
     required String name,
     String? phone,
     required String email,
     required String password,
+    String? degree,
+    String? experience,
+    String? speciality,
+    String? achievements,
+    String? photoUrl,
   }) async {
     await _supabase.rpc(
       'create_coach_user',
@@ -55,6 +86,11 @@ class ProfileRepository {
         'coach_password': password,
         'coach_name': name,
         'coach_phone': phone,
+        'coach_degree': degree,
+        'coach_experience': experience,
+        'coach_speciality': speciality,
+        'coach_achievements': achievements,
+        'coach_photo_url': photoUrl,
       },
     );
   }
@@ -94,6 +130,11 @@ class ProfileRepository {
     required String name,
     required String phone,
     required String email,
+    String? degree,
+    String? experience,
+    String? speciality,
+    String? achievements,
+    String? photoUrl,
   }) async {
     await _supabase.rpc(
       'update_coach_profile',
@@ -102,6 +143,11 @@ class ProfileRepository {
         'new_name': name,
         'new_phone': phone,
         'new_email': email,
+        'new_degree': degree,
+        'new_experience': experience,
+        'new_speciality': speciality,
+        'new_achievements': achievements,
+        'new_photo_url': photoUrl,
       },
     );
   }

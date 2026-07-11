@@ -84,6 +84,9 @@ class StudentDues {
   final DateTime joinDate;
   final String status;
   final String? batchId;
+  final String? phone;
+  final String? sport;
+  final String? batchName;
   final int monthsSinceJoin;
   final double expectedFees;
   final double totalPaid;
@@ -96,6 +99,9 @@ class StudentDues {
     required this.joinDate,
     required this.status,
     this.batchId,
+    this.phone,
+    this.sport,
+    this.batchName,
     required this.monthsSinceJoin,
     required this.expectedFees,
     required this.totalPaid,
@@ -110,6 +116,9 @@ class StudentDues {
       joinDate: DateUtilsHelper.parseSqlDate(json['join_date'] as String),
       status: json['status'] as String,
       batchId: json['batch_id'] as String?,
+      phone: json['phone'] as String?,
+      sport: json['sport'] as String?,
+      batchName: json['batch_name'] as String?,
       monthsSinceJoin: json['months_since_join'] as int,
       expectedFees: (json['expected_fees'] as num).toDouble(),
       totalPaid: (json['total_paid'] as num).toDouble(),
