@@ -1,0 +1,32 @@
+name: Build Free iOS IPA
+on: [push]
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Generates the file using your GitHub repository secrets
+      - name: Create config.json file
+        run: |
+          echo '{"SUPABASE_URL":"${{ secrets.SUPABASE_URL }}","SUPABASE_ANON_KEY":"${{ secrets.SUPABASE_ANON_KEY }}"}' > config.json
+
+      # Injects the config.json file directly into your build output
+      - name: Build Unsigned iOS Archive
+        run: flutter build ios --release --no-codesign --dart-define-from-file=config.json
+
+      - name: Package Into IPA
+        run: |
+          mkdir Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r app.ipa Payload
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-ios-app
+          path: app.ipa

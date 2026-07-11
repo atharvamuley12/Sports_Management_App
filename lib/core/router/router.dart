@@ -25,7 +25,7 @@ class AuthRefreshListenable extends ChangeNotifier {
   AuthRefreshListenable(Ref ref) {
     ref.listen<AuthStateData>(
       authControllerProvider,
-      (previous, next) {
+          (previous, next) {
         if (previous?.user != next.user || previous?.profile != next.profile) {
           notifyListeners();
         }

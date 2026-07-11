@@ -434,8 +434,32 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                         labelText: 'Phone Number',
                         prefixIcon: Icon(Icons.phone_rounded, size: 18),
                       ),
+                      // 👇 VALIDATION BLOCK HERE 👇
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Phone number is required';
+                        }
+
+                        // Clean out common formatting spaces or characters
+                        String cleanNumber = val.trim().replaceAll(RegExp(r'[\s\-()]+'), '');
+
+                        // Handle standard Indian mobile country prefix rules (+91 or 0)
+                        if (cleanNumber.startsWith('+91')) {
+                          cleanNumber = cleanNumber.substring(3);
+                        } else if (cleanNumber.startsWith('0')) {
+                          cleanNumber = cleanNumber.substring(1);
+                        }
+
+                        // Enforce a strict 10-digit format starting with standard mobile digits (6-9)
+                        final phoneRegex = RegExp(r'^[6-9]\d{9}$');
+                        if (!phoneRegex.hasMatch(cleanNumber)) {
+                          return 'Please enter a valid 10-digit mobile number';
+                        }
+                        return null; // Input passes validation successfully
+                      },
                     ),
                     const SizedBox(height: AppTheme.space16),
+
 
                     Row(
                       children: [
@@ -444,15 +468,24 @@ class _StudentFormScreenState extends ConsumerState<StudentFormScreen> {
                             controller: _ageController,
                             keyboardType: TextInputType.number,
                             style: AppTheme.body1,
-                            decoration: const InputDecoration(labelText: 'Age'),
+                            decoration: const InputDecoration(labelText: 'Age *'),
+                            // 👇 UPGRADED EXTRA SECURE VALIDATOR RULE
                             validator: (val) {
-                              if (val != null && val.isNotEmpty && int.tryParse(val) == null) {
-                                return 'Invalid age';
+                              if (val == null || val.trim().isEmpty) {
+                                return 'Age is required';
                               }
-                              return null;
+                              final age = int.tryParse(val.trim());
+                              if (age == null) {
+                                return 'Enter a whole number';
+                              }
+                              if (age <= 0 || age > 100) {
+                                return 'Enter a realistic age (1-100)';
+                              }
+                              return null; // Input passes verification
                             },
                           ),
                         ),
+
                         const SizedBox(width: AppTheme.space16),
                         Expanded(
                           child: TextFormField(
