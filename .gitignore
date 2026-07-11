@@ -33,6 +33,7 @@ migrate_working_dir/
 /build/
 /coverage/
 .env
+config.json
 
 # Symbolication related
 app.*.symbols
@@ -44,5 +45,3 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-config.json
