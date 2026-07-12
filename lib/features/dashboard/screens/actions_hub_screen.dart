@@ -19,6 +19,13 @@ class ActionsHubScreen extends ConsumerWidget {
 
     final hubItems = [
       _HubItem(
+        title: 'Daily Activities',
+        subtitle: 'Plan and track coaching drills and sessions',
+        icon: Icons.event_note_rounded,
+        color: AppTheme.accentOrange,
+        route: '/activities',
+      ),
+      _HubItem(
         title: 'Attendance',
         subtitle: 'Log and track daily player attendance lists',
         icon: Icons.fact_check_rounded,

@@ -11,6 +11,7 @@ import '../../features/students/screens/student_form_screen.dart';
 import '../../features/students/screens/student_profile_screen.dart';
 import '../../shared/models/student.dart';
 import '../../shared/models/batch.dart';
+import '../../shared/models/activity.dart';
 import '../../features/attendance/screens/attendance_screen.dart';
 import '../../features/fees/screens/fees_screen.dart';
 import '../../features/expenses/screens/expenses_screen.dart';
@@ -19,6 +20,8 @@ import '../../features/users/screens/coaches_screen.dart';
 import '../../features/batches/screens/batch_list_screen.dart';
 import '../../features/batches/screens/batch_form_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
+import '../../features/activities/screens/activity_list_screen.dart';
+import '../../features/activities/screens/activity_form_screen.dart';
 import '../../shared/widgets/main_navigation_layout.dart';
 
 class AuthRefreshListenable extends ChangeNotifier {
@@ -148,9 +151,29 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/attendance',
             pageBuilder: (context, state) => _fadeTransition(const AttendanceScreen(), state),
           ),
+          GoRoute(
+            path: '/activities',
+            pageBuilder: (context, state) => _fadeTransition(const ActivityListScreen(), state),
+          ),
         ],
       ),
       // Subpages outside Shell (they slide over the bottom nav bar)
+      GoRoute(
+        path: '/activities/new',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final date = state.extra as DateTime?;
+          return _slideTransition(ActivityFormScreen(initialDate: date), state);
+        },
+      ),
+      GoRoute(
+        path: '/activities/edit',
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) {
+          final activity = state.extra as Activity?;
+          return _slideTransition(ActivityFormScreen(activity: activity), state);
+        },
+      ),
       GoRoute(
         path: '/students/new',
         parentNavigatorKey: rootNavigatorKey,

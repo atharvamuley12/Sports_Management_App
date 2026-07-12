@@ -10,6 +10,10 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository(supabase);
 });
 
+final coachesListProvider = FutureProvider<List<Profile>>((ref) async {
+  return ref.watch(profileRepositoryProvider).getCoaches();
+});
+
 /// Caches and returns image bytes for coach photos from the private storage bucket.
 final coachPhotoBytesProvider = FutureProvider.family.autoDispose<Uint8List, String>((ref, path) async {
   final supabase = ref.watch(supabaseClientProvider);

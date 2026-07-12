@@ -88,6 +88,12 @@ class _MainNavigationLayoutState extends ConsumerState<MainNavigationLayout> {
               label: 'Students',
             ),
             const _NavDestination(
+              route: '/activities',
+              icon: Icons.event_note_outlined,
+              activeIcon: Icons.event_note_rounded,
+              label: 'Planning',
+            ),
+            const _NavDestination(
               route: '/attendance',
               icon: Icons.fact_check_outlined,
               activeIcon: Icons.fact_check_rounded,
@@ -108,8 +114,15 @@ class _MainNavigationLayoutState extends ConsumerState<MainNavigationLayout> {
         currentIndex = 1;
       } else if (location.startsWith('/batches') && isAdmin) {
         currentIndex = 2;
-      } else if (location.startsWith('/attendance')) {
+      } else if (location.startsWith('/activities')) {
         currentIndex = isAdmin ? 3 : 2;
+      } else if (location.startsWith('/attendance')) {
+        currentIndex = isAdmin ? 3 : 3;
+      } else if (location.startsWith('/fees') || 
+                 location.startsWith('/expenses') || 
+                 location.startsWith('/reports') || 
+                 location.startsWith('/users')) {
+        currentIndex = isAdmin ? 3 : 0;
       } else {
         currentIndex = 0;
       }
