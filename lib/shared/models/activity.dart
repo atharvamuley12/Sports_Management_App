@@ -33,14 +33,17 @@ class Activity {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final map = {
       'coach_id': coachId,
       'date': date.toIso8601String().split('T')[0],
       'title': title,
       'description': description,
       'status': status,
     };
+    if (id.isNotEmpty) {
+      map['id'] = id;
+    }
+    return map;
   }
 
   Activity copyWith({

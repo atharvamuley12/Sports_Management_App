@@ -55,6 +55,14 @@ class _ActivityFormScreenState extends ConsumerState<ActivityFormScreen> {
 
     if (success && mounted) {
       Navigator.pop(context);
+    } else if (mounted) {
+      final error = ref.read(activityControllerProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${error ?? 'Failed to save activity'}'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
     }
   }
 
